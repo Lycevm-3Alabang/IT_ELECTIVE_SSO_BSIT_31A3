@@ -1,6 +1,6 @@
 ﻿namespace Models;
 
-public class Class1
+public class TenantApp
 {
 
 }
