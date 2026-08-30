@@ -21,6 +21,8 @@ public class SsoDbContext : IdentityDbContext<IdentityUser>
 
     public DbSet<UserGroup> UserGroups => Set<UserGroup>();
 
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -47,7 +49,7 @@ public class SsoDbContext : IdentityDbContext<IdentityUser>
             g.HasOne(x => x.TenantApp)
                 .WithMany(t => t.Groups)
                 .HasForeignKey(x => x.TenantAppId)
-                .OnDelete(DeleteBehavior.Cascade); 
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         builder.Entity<UserGroup>(ug =>
@@ -57,12 +59,33 @@ public class SsoDbContext : IdentityDbContext<IdentityUser>
             ug.HasOne(x => x.User)
                 .WithMany()
                 .HasForeignKey(x => x.UserId)
-                .OnDelete(DeleteBehavior.Cascade); 
+                .OnDelete(DeleteBehavior.Cascade);
 
             ug.HasOne(x => x.Group)
                 .WithMany()
                 .HasForeignKey(x => x.GroupId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.Cascade); 
+        });
+
+        builder.Entity<AuditLog>(a =>
+        {
+            a.HasKey(x => x.Id);
+
+            a.Property(x => x.Action)
+                .IsRequired()
+                .HasMaxLength(100);
+
+            a.HasOne(x => x.User)
+                .WithMany()
+                .HasForeignKey(x => x.UserId)
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.SetNull); 
+
+            a.HasOne(x => x.TenantApp)
+                .WithMany()
+                .HasForeignKey(x => x.TenantAppId)
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.SetNull);
         });
     }
 }
