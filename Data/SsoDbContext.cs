@@ -27,6 +27,13 @@ public class SsoDbContext : IdentityDbContext<IdentityUser>
     {
         base.OnModelCreating(builder);
 
+        builder.Entity<IdentityUser>(u =>
+        {
+            u.HasIndex(x => x.NormalizedEmail)
+                .HasDatabaseName("EmailIndex")
+                .IsUnique();
+        });
+
         builder.Entity<TenantApp>(t =>
         {
             t.HasKey(a => a.Id);
@@ -35,6 +42,9 @@ public class SsoDbContext : IdentityDbContext<IdentityUser>
                 .IsRequired()
                 .HasColumnName("Name")
                 .HasMaxLength(100);
+
+            t.HasIndex(a => a.Name)
+                .IsUnique();
         });
 
         builder.Entity<Group>(g =>
@@ -64,7 +74,7 @@ public class SsoDbContext : IdentityDbContext<IdentityUser>
             ug.HasOne(x => x.Group)
                 .WithMany()
                 .HasForeignKey(x => x.GroupId)
-                .OnDelete(DeleteBehavior.Cascade); 
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         builder.Entity<AuditLog>(a =>
