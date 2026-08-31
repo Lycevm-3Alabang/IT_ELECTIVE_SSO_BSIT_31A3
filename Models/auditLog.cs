@@ -1,6 +1,4 @@
-﻿using Microsoft.AspNetCore.Identity;
-
-namespace Models;
+﻿namespace Models;
 public class AuditLog
 {
     public int Id { get; set; }
@@ -14,7 +12,7 @@ public class AuditLog
     public string? IpAddress { get; set; }
 
     public string? UserId { get; set; }
-    public IdentityUser? User { get; set; }
+    public ApplicationUser? User { get; set; }
 
     public int? TenantAppId { get; set; }
     public TenantApp? TenantApp { get; set; }
