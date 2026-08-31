@@ -5,7 +5,7 @@ using Models;
 
 namespace Data;
 
-public class SsoDbContext : IdentityDbContext<IdentityUser>
+public class SsoDbContext : IdentityDbContext<ApplicationUser>
 {
     public SsoDbContext(DbContextOptions options) : base(options)
     {
@@ -27,7 +27,7 @@ public class SsoDbContext : IdentityDbContext<IdentityUser>
     {
         base.OnModelCreating(builder);
 
-        builder.Entity<IdentityUser>(u =>
+        builder.Entity<ApplicationUser>(u =>
         {
             u.HasIndex(x => x.NormalizedEmail)
                 .HasDatabaseName("EmailIndex")
