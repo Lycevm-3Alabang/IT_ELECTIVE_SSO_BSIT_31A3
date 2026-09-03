@@ -1,0 +1,83 @@
+﻿@model Gateway.Areas.Admin.Models.Users.UserDetailsViewModel
+@{
+    ViewData["Title"] = "User Details";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0">User Details</h2>
+    <a asp-action="Index" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i> Back to Users
+    </a>
+</div>
+
+@if (TempData["StatusMessage"] is string statusMessage)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @statusMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<div class="card shadow-sm" style="max-width: 640px;">
+    <div class="card-body">
+        <dl class="row mb-0">
+            <dt class="col-sm-4">Email</dt>
+            <dd class="col-sm-8">@Model.Email</dd>
+
+            <dt class="col-sm-4">Status</dt>
+            <dd class="col-sm-8">
+                <span class="badge @(Model.IsActive ? "bg-success" : "bg-secondary")">
+                    @(Model.IsActive ? "Active" : "Inactive")
+                </span>
+            </dd>
+
+            <dt class="col-sm-4">Groups</dt>
+            <dd class="col-sm-8">
+                @if (Model.Groups.Any())
+                {
+                    foreach (var group in Model.Groups)
+                    {
+                        <span class="badge bg-light text-dark border me-1">@group</span>
+                    }
+                }
+                else
+                {
+                    <span class="text-muted">No groups assigned</span>
+                }
+            </dd>
+
+            <dt class="col-sm-4">Created</dt>
+            <dd class="col-sm-8">@Model.CreatedAt.ToLocalTime().ToString("MMM d, yyyy h:mm tt")</dd>
+
+            <dt class="col-sm-4">Last Login</dt>
+            <dd class="col-sm-8">
+                @(Model.LastLoginAt.HasValue
+                    ? Model.LastLoginAt.Value.ToLocalTime().ToString("MMM d, yyyy h:mm tt")
+                    : "Never logged in")
+            </dd>
+        </dl>
+    </div>
+    <div class="card-footer d-flex justify-content-end gap-2">
+        <div class="form-check form-switch d-flex align-items-center me-auto">
+            <input type="checkbox" class="form-check-input js-toggle-active" role="switch"
+                   id="detailsActiveToggle"
+                   data-user-id="@Model.Id"
+                   data-toggle-url="@Url.Action("ToggleActive", new { id = Model.Id })"
+            @(Model.IsActive ? "checked" : "") />
+            <label class="form-check-label ms-2" for="detailsActiveToggle">Active</label>
+        </div>
+        <button type="button" class="btn btn-outline-danger js-delete-trigger"
+                data-bs-toggle="modal" data-bs-target="#deleteUserModal"
+                data-delete-url="@Url.Action("Delete", new { id = Model.Id })"
+                data-user-email="@Model.Email">
+            <i class="bi bi-trash me-1"></i> Delete User
+        </button>
+    </div>
+</div>
+
+@await Html.PartialAsync("_DeleteConfirmModal")
+
+@section Scripts {
+    <form id="antiForgeryForm">@Html.AntiForgeryToken()</form>
+    <script src="~/js/admin-users.js"></script>
+}
