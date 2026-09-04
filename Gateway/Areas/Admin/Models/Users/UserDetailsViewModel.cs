@@ -14,5 +14,7 @@
         public DateTime? LastLoginAt { get; set; }
 
         public List<string> Groups { get; set; } = new();
+
+        public List<AuditLogEntry> RecentActivity { get; set; } = new();
     }
 }

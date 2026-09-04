@@ -18,6 +18,8 @@
     </div>
 }
 
+<div id="userAlerts"></div>
+
 <div class="card shadow-sm" style="max-width: 640px;">
     <div class="card-body">
         <dl class="row mb-0">
@@ -66,6 +68,12 @@
             @(Model.IsActive ? "checked" : "") />
             <label class="form-check-label ms-2" for="detailsActiveToggle">Active</label>
         </div>
+        <button type="button" class="btn btn-outline-warning js-reset-password-trigger"
+                data-bs-toggle="modal" data-bs-target="#resetPasswordModal"
+                data-reset-url="@Url.Action("ResetPassword", new { id = Model.Id })"
+                data-user-email="@Model.Email">
+            <i class="bi bi-key me-1"></i> Reset Password
+        </button>
         <button type="button" class="btn btn-outline-danger js-delete-trigger"
                 data-bs-toggle="modal" data-bs-target="#deleteUserModal"
                 data-delete-url="@Url.Action("Delete", new { id = Model.Id })"
@@ -75,7 +83,28 @@
     </div>
 </div>
 
+<div class="card shadow-sm mt-3" style="max-width: 640px;">
+    <div class="card-header">Recent Activity</div>
+    <ul id="auditLogList" class="list-group list-group-flush">
+        @if (!Model.RecentActivity.Any())
+        {
+            <li class="list-group-item text-muted small">No activity recorded yet.</li>
+        }
+        else
+        {
+            foreach (var entry in Model.RecentActivity)
+            {
+                <li class="list-group-item d-flex justify-content-between align-items-center small">
+                    <span>@entry.Action</span>
+                    <span class="text-muted">@entry.Timestamp.ToLocalTime().ToString("MMM d, yyyy h:mm tt")</span>
+                </li>
+            }
+        }
+    </ul>
+</div>
+
 @await Html.PartialAsync("_DeleteConfirmModal")
+@await Html.PartialAsync("_ResetPasswordModal")
 
 @section Scripts {
     <form id="antiForgeryForm">@Html.AntiForgeryToken()</form>
