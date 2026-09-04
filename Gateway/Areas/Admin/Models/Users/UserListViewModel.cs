@@ -1,12 +1,9 @@
-﻿using Microsoft.AspNetCore.Mvc;
-
-namespace Gateway.Areas.Admin.Models.Users
+﻿namespace Gateway.Areas.Admin.Models.Users
 {
-    public class UserListViewModel : Controller
+    public class UserListViewModel
     {
-        public IActionResult Index()
-        {
-            return View();
-        }
+        public string? SearchTerm { get; set; }
+
+        public List<UserListItemViewModel> Users { get; set; } = new();
     }
 }
