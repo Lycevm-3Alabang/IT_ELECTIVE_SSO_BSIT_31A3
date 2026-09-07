@@ -22,6 +22,22 @@ builder.Services
 
 var app = builder.Build();
 
+// Ensure the SQLite schema (AspNetRoles, AspNetUsers, TenantApps, etc.)
+// exists before anything tries to query it. The project has no EF Core
+// migrations yet, so without this the database file is created empty and
+// every query - including the Day 1 admin seed below - fails with
+// "SQLite Error 1: 'no such table: AspNetRoles'".
+//
+// EnsureCreatedAsync is idempotent: it's a no-op once the tables exist.
+// If/when real EF Core migrations are added to the Data project, replace
+// this call with `await db.Database.MigrateAsync();` instead, since
+// EnsureCreated and migrations should not be mixed.
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<SsoDbContext>();
+    await db.Database.EnsureCreatedAsync();
+}
+
 // Create the Day 1 admin account on first run (idempotent - safe to run
 // on every startup, see Data/SeedData.cs for Issue 3).
 await SeedData.SeedAdminAsync(app.Services);

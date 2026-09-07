@@ -60,8 +60,6 @@ public class SeedDataTests
     {
         await using var provider = BuildServiceProvider(nameof(SeedAdminAsync_SkipsSeed_WhenAdminAlreadyExists));
 
-        // Run the seed twice; the second run must not create a duplicate
-        // or throw because the admin already exists.
         await SeedData.SeedAdminAsync(provider);
         await SeedData.SeedAdminAsync(provider);
 
