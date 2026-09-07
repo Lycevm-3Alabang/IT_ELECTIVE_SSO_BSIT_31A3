@@ -1,0 +1,77 @@
+@model Gateway.Models.Admin.UserListViewModel
+@{
+    ViewData["Title"] = "Users";
+}
+
+<h1>Users</h1>
+
+@if (TempData["StatusMessage"] is string statusMessage)
+{
+    <div class="alert alert-info">@statusMessage</div>
+}
+
+<p>
+    <a class="btn btn-primary" asp-action="Create">Create user</a>
+</p>
+
+<table class="table table-striped align-middle">
+    <thead>
+        <tr>
+            <th>Email</th>
+            <th>Status</th>
+            <th>Created</th>
+            <th>Last login</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var user in Model.Users)
+        {
+            <tr>
+                <td>@user.Email</td>
+                <td>
+                    @if (user.IsActive)
+                    {
+                        <span class="badge bg-success">Active</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-secondary">Inactive</span>
+                    }
+                </td>
+                <td>@user.CreatedAt.ToString("yyyy-MM-dd")</td>
+                <td>@(user.LastLoginAt?.ToString("yyyy-MM-dd HH:mm") ?? "Never")</td>
+                <td class="text-end">
+                    <a class="btn btn-sm btn-outline-secondary" asp-action="Details" asp-route-id="@user.Id">Details</a>
+                    @if (user.IsActive)
+                    {
+                        <form asp-action="Delete" asp-route-id="@user.Id" method="post" class="d-inline"
+                              onsubmit="return confirm('Deactivate @user.Email?');">
+                            <button type="submit" class="btn btn-sm btn-outline-danger">Deactivate</button>
+                        </form>
+                    }
+                </td>
+            </tr>
+        }
+        @if (!Model.Users.Any())
+        {
+            <tr>
+                <td colspan="5" class="text-center text-muted">No users found.</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<nav aria-label="Users pagination">
+    <ul class="pagination">
+        <li class="page-item @(Model.HasPreviousPage ? "" : "disabled")">
+            <a class="page-link" asp-action="Index" asp-route-page="@(Model.Page - 1)" asp-route-pageSize="@Model.PageSize">Previous</a>
+        </li>
+        <li class="page-item disabled">
+            <span class="page-link">Page @Model.Page of @Model.TotalPages</span>
+        </li>
+        <li class="page-item @(Model.HasNextPage ? "" : "disabled")">
+            <a class="page-link" asp-action="Index" asp-route-page="@(Model.Page + 1)" asp-route-pageSize="@Model.PageSize">Next</a>
+        </li>
+    </ul>
+</nav>
