@@ -3,4 +3,5 @@
   <Project Path="Gateway/Gateway.csproj" />
   <Project Path="Models/Models.csproj" />
   <Project Path="Tests/Data.Tests/Data.Tests.csproj" />
+  <Project Path="Tests/Gateway.Tests/Gateway.Tests.csproj" />
 </Solution>
