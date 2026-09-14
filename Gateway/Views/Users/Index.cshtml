@@ -14,6 +14,8 @@
     <a class="btn btn-primary" asp-action="Create">Create user</a>
 </p>
 
+@Html.AntiForgeryToken()
+
 <table class="table table-striped align-middle">
     <thead>
         <tr>
@@ -21,26 +23,31 @@
             <th>Status</th>
             <th>Created</th>
             <th>Last login</th>
+            <th>Active</th>
             <th></th>
         </tr>
     </thead>
     <tbody>
         @foreach (var user in Model.Users)
         {
-            <tr>
+            <tr id="user-row-@user.Id">
                 <td>@user.Email</td>
                 <td>
-                    @if (user.IsActive)
-                    {
-                        <span class="badge bg-success">Active</span>
-                    }
-                    else
-                    {
-                        <span class="badge bg-secondary">Inactive</span>
-                    }
+                    <span class="badge @(user.IsActive ? "bg-success" : "bg-secondary") user-status">@(user.IsActive ? "Active" : "Inactive")</span>
                 </td>
                 <td>@user.CreatedAt.ToString("yyyy-MM-dd")</td>
                 <td>@(user.LastLoginAt?.ToString("yyyy-MM-dd HH:mm") ?? "Never")</td>
+                <td>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input user-active-toggle"
+                               type="checkbox"
+                               role="switch"
+                               id="active-@user.Id"
+                               data-user-id="@user.Id"
+                               aria-label="Toggle active status for @user.Email"
+                               @(user.IsActive ? "checked" : "") />
+                    </div>
+                </td>
                 <td class="text-end">
                     <a class="btn btn-sm btn-outline-secondary" asp-action="Details" asp-route-id="@user.Id">Details</a>
                     @if (user.IsActive)
@@ -56,7 +63,7 @@
         @if (!Model.Users.Any())
         {
             <tr>
-                <td colspan="5" class="text-center text-muted">No users found.</td>
+                <td colspan="6" class="text-center text-muted">No users found.</td>
             </tr>
         }
     </tbody>
@@ -75,3 +82,47 @@
         </li>
     </ul>
 </nav>
+
+@section Scripts {
+    <script>
+        (() => {
+            const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+            const endpoint = '@Url.Action("ToggleActive", "Users")';
+
+            document.querySelectorAll('.user-active-toggle').forEach(toggle => {
+                toggle.addEventListener('change', async () => {
+                    const previous = !toggle.checked;
+                    toggle.disabled = true;
+
+                    try {
+                        const response = await fetch(`${endpoint}/${encodeURIComponent(toggle.dataset.userId)}`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'RequestVerificationToken': token,
+                                'X-Requested-With': 'XMLHttpRequest'
+                            }
+                        });
+
+                        const data = await response.json();
+                        if (!response.ok || !data.success) {
+                            throw new Error(data.message || 'Unable to update account status.');
+                        }
+
+                        toggle.checked = data.isActive;
+                        const row = toggle.closest('tr');
+                        const status = row.querySelector('.user-status');
+                        status.textContent = data.status;
+                        status.classList.toggle('bg-success', data.isActive);
+                        status.classList.toggle('bg-secondary', !data.isActive);
+                    } catch (error) {
+                        toggle.checked = previous;
+                        alert(error.message || 'Unable to update account status.');
+                    } finally {
+                        toggle.disabled = false;
+                    }
+                });
+            });
+        })();
+    </script>
+}

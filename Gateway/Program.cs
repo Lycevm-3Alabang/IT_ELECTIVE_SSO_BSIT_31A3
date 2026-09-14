@@ -2,6 +2,7 @@ using Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Models;
+using Gateway.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,6 +18,9 @@ builder.Services
     })
     .AddEntityFrameworkStores<SsoDbContext>()
     .AddDefaultTokenProviders();
+
+// Use the active-aware SignInManager so inactive accounts cannot log in.
+builder.Services.AddScoped<SignInManager<ApplicationUser>, ActiveUserSignInManager>();
 
 var app = builder.Build();
 
