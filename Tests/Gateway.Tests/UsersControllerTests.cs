@@ -3,6 +3,7 @@ using Gateway.Controllers;
 using Gateway.Models.Admin;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Http; 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Models;
@@ -16,6 +17,7 @@ public class UsersControllerTests
     {
         var services = new ServiceCollection();
         services.AddLogging();
+        services.AddHttpContextAccessor();
 
         services.AddDbContext<SsoDbContext>(options =>
             options.UseInMemoryDatabase(dbName));
@@ -174,6 +176,115 @@ public class UsersControllerTests
         var result = await controller.Details("does-not-exist");
 
         Assert.IsType<NotFoundResult>(result);
+    }
+
+    [Fact]
+    public async Task ToggleActive_ChangesIsActiveFromTrueToFalse()
+    {
+        await using var provider = BuildServiceProvider(nameof(ToggleActive_ChangesIsActiveFromTrueToFalse));
+        var controller = BuildController(provider);
+
+        await controller.Create(new CreateUserViewModel
+        {
+            Email = "toggle-off@example.com",
+            Password = "Password1!",
+            ConfirmPassword = "Password1!",
+        });
+
+        var userManager = provider.GetRequiredService<UserManager<ApplicationUser>>();
+        var user = await userManager.FindByEmailAsync("toggle-off@example.com");
+        Assert.NotNull(user);
+        Assert.True(user!.IsActive);
+
+        var result = await controller.ToggleActive(user.Id);
+
+        Assert.IsType<RedirectToActionResult>(result);
+        var reloaded = await userManager.FindByIdAsync(user.Id);
+        Assert.NotNull(reloaded);
+        Assert.False(reloaded!.IsActive);
+    }
+
+    [Fact]
+    public async Task ToggleActive_ChangesIsActiveFromFalseToTrue()
+    {
+        await using var provider = BuildServiceProvider(nameof(ToggleActive_ChangesIsActiveFromFalseToTrue));
+        var controller = BuildController(provider);
+
+        await controller.Create(new CreateUserViewModel
+        {
+            Email = "toggle-on@example.com",
+            Password = "Password1!",
+            ConfirmPassword = "Password1!",
+        });
+
+        var userManager = provider.GetRequiredService<UserManager<ApplicationUser>>();
+        var user = await userManager.FindByEmailAsync("toggle-on@example.com");
+        Assert.NotNull(user);
+
+        user!.IsActive = false;
+        await userManager.UpdateAsync(user);
+
+        var result = await controller.ToggleActive(user.Id);
+
+        Assert.IsType<RedirectToActionResult>(result);
+        var reloaded = await userManager.FindByIdAsync(user.Id);
+        Assert.NotNull(reloaded);
+        Assert.True(reloaded!.IsActive);
+    }
+
+    [Fact]
+    public async Task ToggleActive_Ajax_ReturnsJsonWithNewStatus()
+    {
+        await using var provider = BuildServiceProvider(nameof(ToggleActive_Ajax_ReturnsJsonWithNewStatus));
+        var controller = BuildController(provider);
+
+        await controller.Create(new CreateUserViewModel
+        {
+            Email = "toggle-ajax@example.com",
+            Password = "Password1!",
+            ConfirmPassword = "Password1!",
+        });
+
+        var userManager = provider.GetRequiredService<UserManager<ApplicationUser>>();
+        var user = await userManager.FindByEmailAsync("toggle-ajax@example.com");
+        Assert.NotNull(user);
+
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Headers.XRequestedWith = "XMLHttpRequest";
+        controller.ControllerContext = new ControllerContext { HttpContext = httpContext };
+
+        var result = await controller.ToggleActive(user!.Id);
+
+        var json = Assert.IsType<JsonResult>(result);
+        Assert.NotNull(json.Value);
+        var valueType = json.Value!.GetType();
+        Assert.True((bool)valueType.GetProperty("success")!.GetValue(json.Value)!);
+        Assert.False((bool)valueType.GetProperty("isActive")!.GetValue(json.Value)!);
+        Assert.Equal("Inactive", valueType.GetProperty("status")!.GetValue(json.Value));
+    }
+
+    [Fact]
+    public async Task InactiveUser_CannotCompletePasswordSignIn()
+    {
+        await using var provider = BuildServiceProvider(nameof(InactiveUser_CannotCompletePasswordSignIn));
+        var userManager = provider.GetRequiredService<UserManager<ApplicationUser>>();
+        var signInManager = provider.GetRequiredService<SignInManager<ApplicationUser>>();
+
+        var user = new ApplicationUser
+        {
+            UserName = "suspended@example.com",
+            Email = "suspended@example.com",
+            EmailConfirmed = true,
+            IsActive = false,
+        };
+
+        var createResult = await userManager.CreateAsync(user, "Password1!");
+        Assert.True(createResult.Succeeded);
+
+        var result = await signInManager.PasswordSignInAsync(user.Email!, "Password1!", false, false);
+
+        Assert.False(result.Succeeded);
+        Assert.True(result.IsNotAllowed);
     }
 
     [Fact]

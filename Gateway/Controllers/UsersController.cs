@@ -135,6 +135,61 @@ public class UsersController : Controller
         return View(model);
     }
 
+
+    [HttpPost("ToggleActive/{id}")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ToggleActive(string id)
+    {
+        if (string.IsNullOrWhiteSpace(id))
+        {
+            return NotFound();
+        }
+
+        var user = await _userManager.FindByIdAsync(id);
+        if (user is null)
+        {
+            return NotFound();
+        }
+
+        user.IsActive = !user.IsActive;
+
+        var result = await _userManager.UpdateAsync(user);
+        if (!result.Succeeded)
+        {
+            var errors = string.Join("; ", result.Errors.Select(e => e.Description));
+
+            if (IsAjaxRequest())
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    message = errors
+                });
+            }
+
+            TempData["StatusMessage"] = $"Failed to change the status of {user.Email}: {errors}";
+            return RedirectToAction(nameof(Index));
+        }
+
+        if (IsAjaxRequest())
+        {
+            return Json(new
+            {
+                success = true,
+                id = user.Id,
+                isActive = user.IsActive,
+                status = user.IsActive ? "Active" : "Inactive"
+            });
+        }
+
+        TempData["StatusMessage"] = $"User {user.Email} is now {(user.IsActive ? "active" : "inactive")}.";
+        return RedirectToAction(nameof(Index));
+    }
+
+    private bool IsAjaxRequest() =>
+        Request.Headers.TryGetValue("X-Requested-With", out var value) &&
+        string.Equals(value.ToString(), "XMLHttpRequest", StringComparison.OrdinalIgnoreCase);
+
     [HttpPost("Delete/{id}")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(string id)
