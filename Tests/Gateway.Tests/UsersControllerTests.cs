@@ -1,6 +1,7 @@
 ﻿using Data;
 using Gateway.Controllers;
 using Gateway.Models.Admin;
+using Gateway.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Http; 
@@ -25,6 +26,7 @@ public class UsersControllerTests
         services.AddIdentity<ApplicationUser, IdentityRole>()
             .AddEntityFrameworkStores<SsoDbContext>()
             .AddDefaultTokenProviders();
+        services.AddScoped<IAuditService, AuditService>();
 
         return services.BuildServiceProvider();
     }
@@ -32,7 +34,8 @@ public class UsersControllerTests
     private static UsersController BuildController(IServiceProvider provider)
     {
         var userManager = provider.GetRequiredService<UserManager<ApplicationUser>>();
-        return new UsersController(userManager);
+        var auditService = provider.GetRequiredService<IAuditService>();
+        return new UsersController(userManager, auditService);
     }
 
     [Fact]
@@ -311,4 +314,62 @@ public class UsersControllerTests
         Assert.NotNull(reloaded);
         Assert.False(reloaded!.IsActive);
     }
+    [Fact]
+    public async Task Login_CreatesSuccessfulAuditLog()
+    {
+        await using var provider = BuildServiceProvider(nameof(Login_CreatesSuccessfulAuditLog));
+        var userManager = provider.GetRequiredService<UserManager<ApplicationUser>>();
+        var signInManager = provider.GetRequiredService<SignInManager<ApplicationUser>>();
+        var auditService = provider.GetRequiredService<IAuditService>();
+
+        var user = new ApplicationUser
+        {
+            UserName = "login.audit@example.com",
+            Email = "login.audit@example.com",
+            EmailConfirmed = true,
+            IsActive = true
+        };
+        Assert.True((await userManager.CreateAsync(user, "Password1!")).Succeeded);
+
+        var controller = new Gateway.Controllers.AccountController(signInManager, userManager, auditService);
+        controller.ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() };
+        controller.HttpContext.Connection.RemoteIpAddress = System.Net.IPAddress.Parse("127.0.0.1");
+
+        var result = await controller.Login(user.Email!, "Password1!", false, null);
+
+        Assert.IsType<LocalRedirectResult>(result);
+        var log = await provider.GetRequiredService<SsoDbContext>().AuditLogs.SingleAsync(x => x.Action == "LoginSuccess");
+        Assert.Equal(user.Id, log.UserId);
+        Assert.Contains(user.Email!, log.Details);
+        Assert.Equal("127.0.0.1", log.IpAddress);
+    }
+
+    [Fact]
+    public async Task ToggleActive_CreatesAdminActionAuditLog()
+    {
+        await using var provider = BuildServiceProvider(nameof(ToggleActive_CreatesAdminActionAuditLog));
+        var controller = BuildController(provider);
+
+        await controller.Create(new CreateUserViewModel
+        {
+            Email = "audit.target@example.com",
+            Password = "Password1!",
+            ConfirmPassword = "Password1!"
+        });
+
+        var userManager = provider.GetRequiredService<UserManager<ApplicationUser>>();
+        var user = await userManager.FindByEmailAsync("audit.target@example.com");
+        Assert.NotNull(user);
+
+        var httpContext = new DefaultHttpContext();
+        httpContext.Connection.RemoteIpAddress = System.Net.IPAddress.Parse("10.0.0.10");
+        controller.ControllerContext = new ControllerContext { HttpContext = httpContext };
+
+        await controller.ToggleActive(user!.Id);
+
+        var log = await provider.GetRequiredService<SsoDbContext>().AuditLogs.SingleAsync(x => x.Action == "ToggleActive");
+        Assert.Contains(user.Email!, log.Details);
+        Assert.Equal("10.0.0.10", log.IpAddress);
+    }
+
 }

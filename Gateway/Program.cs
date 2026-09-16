@@ -7,6 +7,7 @@ using Gateway.Services;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllersWithViews();
+builder.Services.AddScoped<IAuditService, AuditService>();
 
 builder.Services.AddDbContext<SsoDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
