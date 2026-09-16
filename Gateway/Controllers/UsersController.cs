@@ -1,4 +1,6 @@
+using System.Security.Claims;
 using Data;
+using Gateway.Services;
 using Gateway.Models.Admin;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -15,10 +17,12 @@ public class UsersController : Controller
     private const int MaxPageSize = 100;
 
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IAuditService _auditService;
 
-    public UsersController(UserManager<ApplicationUser> userManager)
+    public UsersController(UserManager<ApplicationUser> userManager, IAuditService auditService)
     {
         _userManager = userManager;
+        _auditService = auditService;
     }
 
     [HttpGet("")]
@@ -102,6 +106,12 @@ public class UsersController : Controller
             return View(model);
         }
 
+        await _auditService.LogAction(
+            "CreateUser",
+            $"Admin created user {user.Email}.",
+            CurrentAdminId(),
+            HttpContext.Connection.RemoteIpAddress?.ToString());
+
         TempData["StatusMessage"] = $"User {user.Email} was created.";
         return RedirectToAction(nameof(Index));
     }
@@ -171,6 +181,12 @@ public class UsersController : Controller
             return RedirectToAction(nameof(Index));
         }
 
+        await _auditService.LogAction(
+            "ToggleActive",
+            $"Admin changed {user.Email} to {(user.IsActive ? "active" : "inactive")}.",
+            CurrentAdminId(),
+            HttpContext.Connection.RemoteIpAddress?.ToString());
+
         if (IsAjaxRequest())
         {
             return Json(new
@@ -185,6 +201,39 @@ public class UsersController : Controller
         TempData["StatusMessage"] = $"User {user.Email} is now {(user.IsActive ? "active" : "inactive")}.";
         return RedirectToAction(nameof(Index));
     }
+
+    [HttpPost("ResetPassword/{id}")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ResetPassword(string id, string password, string confirmPassword)
+    {
+        if (string.IsNullOrWhiteSpace(id)) return NotFound();
+        var user = await _userManager.FindByIdAsync(id);
+        if (user is null) return NotFound();
+        if (string.IsNullOrWhiteSpace(password) || password.Length < 6 || password != confirmPassword)
+        {
+            TempData["StatusMessage"] = "Password reset failed. Use a matching password with at least 6 characters.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+        var result = await _userManager.ResetPasswordAsync(user, token, password);
+        if (!result.Succeeded)
+        {
+            TempData["StatusMessage"] = "Password reset failed: " + string.Join("; ", result.Errors.Select(e => e.Description));
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        await _auditService.LogAction(
+            "ResetPassword",
+            $"Admin reset the password for {user.Email}.",
+            CurrentAdminId(),
+            HttpContext.Connection.RemoteIpAddress?.ToString());
+
+        TempData["StatusMessage"] = $"Password for {user.Email} was reset.";
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
+    private string? CurrentAdminId() => User.FindFirstValue(ClaimTypes.NameIdentifier);
 
     private bool IsAjaxRequest() =>
         Request.Headers.TryGetValue("X-Requested-With", out var value) &&
@@ -214,6 +263,12 @@ public class UsersController : Controller
             TempData["StatusMessage"] = $"Failed to deactivate {user.Email}: {errors}";
             return RedirectToAction(nameof(Index));
         }
+
+        await _auditService.LogAction(
+            "DeactivateUser",
+            $"Admin deactivated {user.Email}.",
+            CurrentAdminId(),
+            HttpContext.Connection.RemoteIpAddress?.ToString());
 
         TempData["StatusMessage"] = $"User {user.Email} was deactivated.";
         return RedirectToAction(nameof(Index));

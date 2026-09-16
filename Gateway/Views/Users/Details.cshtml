@@ -5,6 +5,11 @@
 
 <h1>User details</h1>
 
+@if (TempData["StatusMessage"] is string statusMessage)
+{
+    <div class="alert alert-info">@statusMessage</div>
+}
+
 <dl class="row">
     <dt class="col-sm-3">Email</dt>
     <dd class="col-sm-9">@Model.Email</dd>
@@ -32,6 +37,15 @@
         @(Model.Roles.Any() ? string.Join(", ", Model.Roles) : "None")
     </dd>
 </dl>
+
+<hr />
+<h2 class="h5">Reset password</h2>
+<form asp-action="ResetPassword" asp-route-id="@Model.Id" method="post" class="row g-2 mb-3">
+    @Html.AntiForgeryToken()
+    <div class="col-md-4"><input name="password" type="password" class="form-control" placeholder="New password" minlength="6" required /></div>
+    <div class="col-md-4"><input name="confirmPassword" type="password" class="form-control" placeholder="Confirm password" minlength="6" required /></div>
+    <div class="col-md-4"><button type="submit" class="btn btn-warning" onclick="return confirm('Reset this user password?');">Reset Password</button></div>
+</form>
 
 @if (Model.IsActive)
 {
