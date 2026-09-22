@@ -345,6 +345,65 @@ public class UsersControllerTests
     }
 
     [Fact]
+    public async Task Login_WithInvalidPassword_CreatesFailedAuditLogWithEmailAndReason()
+    {
+        await using var provider = BuildServiceProvider(nameof(Login_WithInvalidPassword_CreatesFailedAuditLogWithEmailAndReason));
+        var userManager = provider.GetRequiredService<UserManager<ApplicationUser>>();
+        var signInManager = provider.GetRequiredService<SignInManager<ApplicationUser>>();
+        var auditService = provider.GetRequiredService<IAuditService>();
+
+        var user = new ApplicationUser
+        {
+            UserName = "wrong.password@example.com",
+            Email = "wrong.password@example.com",
+            EmailConfirmed = true,
+            IsActive = true
+        };
+        Assert.True((await userManager.CreateAsync(user, "Password1!")).Succeeded);
+
+        var controller = new Gateway.Controllers.AccountController(signInManager, userManager, auditService);
+        var httpContext = new DefaultHttpContext();
+        httpContext.Connection.RemoteIpAddress = System.Net.IPAddress.Parse("192.168.1.5");
+        controller.ControllerContext = new ControllerContext { HttpContext = httpContext };
+
+        var result = await controller.Login(user.Email!, "TotallyWrongPassword!", false, null);
+
+        Assert.IsType<ViewResult>(result);
+        var log = await provider.GetRequiredService<SsoDbContext>().AuditLogs.SingleAsync(x => x.Action == "LoginFailed");
+        Assert.Equal(user.Email, log.Email);
+        Assert.Equal("Invalid email or password", log.Reason);
+        Assert.Equal("192.168.1.5", log.IpAddress);
+    }
+
+    [Fact]
+    public async Task Login_WithInactiveAccount_CreatesFailedAuditLogWithReason()
+    {
+        await using var provider = BuildServiceProvider(nameof(Login_WithInactiveAccount_CreatesFailedAuditLogWithReason));
+        var userManager = provider.GetRequiredService<UserManager<ApplicationUser>>();
+        var signInManager = provider.GetRequiredService<SignInManager<ApplicationUser>>();
+        var auditService = provider.GetRequiredService<IAuditService>();
+
+        var user = new ApplicationUser
+        {
+            UserName = "suspended.login@example.com",
+            Email = "suspended.login@example.com",
+            EmailConfirmed = true,
+            IsActive = false
+        };
+        Assert.True((await userManager.CreateAsync(user, "Password1!")).Succeeded);
+
+        var controller = new Gateway.Controllers.AccountController(signInManager, userManager, auditService);
+        controller.ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() };
+
+        var result = await controller.Login(user.Email!, "Password1!", false, null);
+
+        Assert.IsType<ViewResult>(result);
+        var log = await provider.GetRequiredService<SsoDbContext>().AuditLogs.SingleAsync(x => x.Action == "LoginFailed");
+        Assert.Equal(user.Email, log.Email);
+        Assert.Equal("Account inactive", log.Reason);
+    }
+
+    [Fact]
     public async Task ToggleActive_CreatesAdminActionAuditLog()
     {
         await using var provider = BuildServiceProvider(nameof(ToggleActive_CreatesAdminActionAuditLog));

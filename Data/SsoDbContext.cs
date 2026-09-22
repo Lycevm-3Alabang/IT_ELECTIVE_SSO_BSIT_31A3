@@ -85,6 +85,12 @@ public class SsoDbContext : IdentityDbContext<ApplicationUser>
                 .IsRequired()
                 .HasMaxLength(100);
 
+            a.Property(x => x.Email)
+                .HasMaxLength(256);
+
+            a.Property(x => x.Reason)
+                .HasMaxLength(200);
+
             a.HasOne(x => x.User)
                 .WithMany()
                 .HasForeignKey(x => x.UserId)

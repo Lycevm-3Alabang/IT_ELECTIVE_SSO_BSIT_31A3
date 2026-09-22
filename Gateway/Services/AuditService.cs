@@ -20,6 +20,8 @@ public sealed class AuditService : IAuditService
         {
             Action = successful ? "LoginSuccess" : "LoginFailed",
             Details = successful ? $"Successful login for {email}." : $"Failed login for {email}. Reason: {reason ?? "Unknown"}.",
+            Email = email,
+            Reason = successful ? null : (reason ?? "Unknown"),
             UserId = userId,
             IpAddress = ipAddress,
             Timestamp = timestamp ?? DateTime.UtcNow

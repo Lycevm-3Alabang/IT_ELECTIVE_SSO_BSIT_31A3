@@ -39,8 +39,9 @@ public class AuditController : Controller
         var logs = await query.Skip((page - 1) * pageSize).Take(pageSize)
             .Select(x => new AuditLogListItemViewModel
             {
-                Id = x.Id, Action = x.Action, Details = x.Details, Timestamp = x.Timestamp,
-                IpAddress = x.IpAddress, UserId = x.UserId, Email = x.User != null ? x.User.Email : null
+                Id = x.Id, Action = x.Action, Details = x.Details, Reason = x.Reason, Timestamp = x.Timestamp,
+                IpAddress = x.IpAddress, UserId = x.UserId,
+                Email = x.Email ?? (x.User != null ? x.User.Email : null)
             }).ToListAsync();
 
         return View(new AuditLogListViewModel { Logs = logs, Page = page, PageSize = pageSize, TotalCount = totalCount, From = from, To = to });
