@@ -1,0 +1,41 @@
+﻿@model Gateway.Areas.Admin.Models.DashboardViewModel
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<h2 class="mb-4">Dashboard</h2>
+
+<div class="row g-3">
+    <div class="col-sm-6 col-lg-3">
+        <div class="card text-white bg-primary shadow-sm">
+            <div class="card-body">
+                <h6 class="card-title">Total Users</h6>
+                <p class="card-text fs-2 fw-bold">@Model.TotalUsers</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card text-white bg-success shadow-sm">
+            <div class="card-body">
+                <h6 class="card-title">Active Users</h6>
+                <p class="card-text fs-2 fw-bold">@Model.ActiveUsers</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card text-white bg-info shadow-sm">
+            <div class="card-body">
+                <h6 class="card-title">Total Apps</h6>
+                <p class="card-text fs-2 fw-bold">@Model.TotalApps</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card text-white bg-warning shadow-sm">
+            <div class="card-body">
+                <h6 class="card-title">Total Groups</h6>
+                <p class="card-text fs-2 fw-bold">@Model.TotalGroups</p>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,93 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Admin | IT ELECTIVE SSO</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" />
+    <style>
+        body { min-height: 100vh; }
+        .sidebar {
+            min-height: 100vh;
+            background-color: #212529;
+        }
+        .sidebar .nav-link {
+            color: #adb5bd;
+        }
+        .sidebar .nav-link.active {
+            color: #fff;
+            background-color: #343a40;
+            border-radius: 6px;
+        }
+        .sidebar .nav-link:hover {
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav class="col-md-3 col-lg-2 d-md-block sidebar collapse" id="sidebarMenu">
+                <div class="position-sticky pt-3">
+                    <h5 class="text-white text-center mb-4">IT ELECTIVE - SSO</h5>
+                    <ul class="nav flex-column px-2">
+                        <li class="nav-item">
+                            <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Dashboard" ? "active" : "")"
+                               asp-area="Admin" asp-controller="Dashboard" asp-action="Index">
+                                <i class="bi bi-speedometer2 me-2"></i> Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Users" ? "active" : "")"
+                               asp-area="Admin" asp-controller="Users" asp-action="Index">
+                                <i class="bi bi-people me-2"></i> Users
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "TenantApps" ? "active" : "")"
+                               asp-area="Admin" asp-controller="TenantApps" asp-action="Index">
+                                <i class="bi bi-app-indicator me-2"></i> Apps
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Groups" ? "active" : "")"
+                               asp-area="Admin" asp-controller="Groups" asp-action="Index">
+                                <i class="bi bi-diagram-3 me-2"></i> Groups
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "AuditLogs" ? "active" : "")"
+                               asp-area="Admin" asp-controller="AuditLogs" asp-action="Index">
+                                <i class="bi bi-journal-text me-2"></i> Audit Logs
+                            </a>
+                        </li>
+                    </ul>
+
+                    <hr class="text-secondary" />
+
+                    <form asp-area="" asp-controller="Auth" asp-action="Logout" method="post" class="px-2">
+                        <button type="submit" class="btn btn-outline-light w-100">
+                            <i class="bi bi-box-arrow-right me-2"></i> Logout
+                        </button>
+                    </form>
+                </div>
+            </nav>
+
+            <!-- Main content -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 py-4">
+                <div class="d-md-none mb-3">
+                    <button class="btn btn-dark" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarMenu">
+                        <i class="bi bi-list"></i> Menu
+                    </button>
+                </div>
+                @RenderBody()
+            </main>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>
