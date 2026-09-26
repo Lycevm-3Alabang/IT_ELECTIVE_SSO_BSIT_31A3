@@ -1,5 +1,15 @@
 ﻿@{
     ViewData["Title"] = "IT ELECTIVE - SSO";
+
+    var returnUrl = ViewData["ReturnUrl"] as string;
+
+    string? appName = null;
+
+    if (!string.IsNullOrWhiteSpace(returnUrl) &&
+        Uri.TryCreate(returnUrl, UriKind.Absolute, out var uri))
+    {
+        appName = uri.Host;
+    }
 }
 
 <!DOCTYPE html>
@@ -72,7 +82,7 @@
 
             .login-header {
                 text-align: center;
-                margin-bottom: 30px;
+                margin-bottom: 24px;
             }
 
                 .login-header h1 {
@@ -84,6 +94,15 @@
                     margin-top: 8px;
                     color: #666666;
                 }
+
+            .app-name {
+                margin-bottom: 24px;
+                padding: 12px;
+                border-radius: 8px;
+                background: #f1f3f5;
+                text-align: center;
+                color: #444444;
+            }
 
             .form-group {
                 margin-bottom: 18px;
@@ -143,6 +162,13 @@
                 <h1>IT ELECTIVE - SSO</h1>
                 <p>Single Sign-On Gateway</p>
             </header>
+
+            @if (!string.IsNullOrWhiteSpace(appName))
+            {
+                <div class="app-name">
+                    Sign in to <strong>@appName</strong>
+                </div>
+            }
 
             <form method="post">
 
