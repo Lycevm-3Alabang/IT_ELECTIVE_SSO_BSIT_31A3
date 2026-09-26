@@ -9,34 +9,169 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
     <title>Login - IT ELECTIVE - SSO</title>
+
+    <style>
+            * {
+                box-sizing: border-box;
+            }
+
+            body {
+                margin: 0;
+                min-height: 100vh;
+                font-family: Arial, sans-serif;
+                background: #f4f6f8;
+                color: #222222;
+            }
+
+            .navbar {
+                width: 100%;
+                background: #ffffff;
+                border-bottom: 1px solid #dddddd;
+                padding: 18px 40px;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+            }
+
+            .brand {
+                font-size: 20px;
+                font-weight: 700;
+            }
+
+            .nav-links {
+                display: flex;
+                gap: 24px;
+            }
+
+            .nav-links a {
+                color: #444444;
+                text-decoration: none;
+                font-size: 15px;
+            }
+
+            .nav-links a:hover {
+                color: #000000;
+            }
+
+            .login-container {
+                min-height: calc(100vh - 73px);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 40px 20px;
+            }
+
+            .login-card {
+                width: 100%;
+                max-width: 420px;
+                background: #ffffff;
+                padding: 40px;
+                border-radius: 16px;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            }
+
+            .login-header {
+                text-align: center;
+                margin-bottom: 30px;
+            }
+
+            .login-header h1 {
+                margin: 0;
+                font-size: 28px;
+            }
+
+            .login-header p {
+                margin-top: 8px;
+                color: #666666;
+            }
+
+            .form-group {
+                margin-bottom: 18px;
+            }
+
+            label {
+                display: block;
+                margin-bottom: 7px;
+                font-weight: 600;
+            }
+
+            input {
+                width: 100%;
+                padding: 12px;
+                border: 1px solid #cccccc;
+                border-radius: 8px;
+                font-size: 16px;
+            }
+
+            .login-button {
+                width: 100%;
+                padding: 13px;
+                border: none;
+                border-radius: 8px;
+                background: #222222;
+                color: #ffffff;
+                font-size: 16px;
+                font-weight: 600;
+                cursor: pointer;
+            }
+
+            .login-button:hover {
+                background: #444444;
+            }
+    </style>
 </head>
 
 <body>
 
-    <main>
-        <h1>Login</h1>
+    <nav class="navbar">
+        <div class="brand">
+            IT ELECTIVE - SSO
+        </div>
 
-        <form method="post">
-            <div>
-                <label for="email">Email</label>
-                <input type="email"
-                       id="email"
-                       name="email"
-                       required />
-            </div>
+        <div class="nav-links">
+            <a href="/">Gateway</a>
+            <a href="/">Home</a>
+            <a href="/">External Apps</a>
+            <a href="/">Privacy</a>
+        </div>
+    </nav>
 
-            <div>
-                <label for="password">Password</label>
-                <input type="password"
-                       id="password"
-                       name="password"
-                       required />
-            </div>
+    <main class="login-container">
+        <section class="login-card">
 
-            <button type="submit">
-                Sign In
-            </button>
-        </form>
+            <header class="login-header">
+                <h1>Login</h1>
+                <p>Sign in to continue</p>
+            </header>
+
+            <form method="post">
+
+                <div class="form-group">
+                    <label for="email">Email</label>
+
+                    <input type="email"
+                           id="email"
+                           name="email"
+                           required />
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+
+                    <input type="password"
+                           id="password"
+                           name="password"
+                           required />
+                </div>
+
+                <button type="submit"
+                        class="login-button">
+                    Sign In
+                </button>
+
+            </form>
+
+        </section>
     </main>
 
 </body>
