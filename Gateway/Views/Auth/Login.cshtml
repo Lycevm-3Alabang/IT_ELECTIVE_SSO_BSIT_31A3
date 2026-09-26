@@ -104,6 +104,16 @@
                 color: #444444;
             }
 
+            .error {
+                margin-bottom: 18px;
+                padding: 12px;
+                border-radius: 8px;
+                background: #fdecec;
+                border: 1px solid #e5a5a5;
+                color: #a00000;
+                font-size: 14px;
+            }
+
             .form-group {
                 margin-bottom: 18px;
             }
@@ -169,6 +179,12 @@
                     Sign in to <strong>@appName</strong>
                 </div>
             }
+
+            <div class="error"
+                 role="alert"
+                 aria-live="assertive">
+                Invalid email or password.
+            </div>
 
             <form method="post">
 
