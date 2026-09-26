@@ -12,14 +12,36 @@ public class AccountController : Controller
     private readonly SignInManager<ApplicationUser> _signInManager;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IAuditService _auditService;
+    private readonly IReturnUrlValidator _returnUrlValidator;
 
-    public AccountController(SignInManager<ApplicationUser> signInManager, UserManager<ApplicationUser> userManager, IAuditService auditService)
+    public AccountController(
+        SignInManager<ApplicationUser> signInManager,
+        UserManager<ApplicationUser> userManager,
+        IAuditService auditService,
+        IReturnUrlValidator returnUrlValidator)
     {
-        _signInManager = signInManager; _userManager = userManager; _auditService = auditService;
+        _signInManager = signInManager;
+        _userManager = userManager;
+        _auditService = auditService;
+        _returnUrlValidator = returnUrlValidator;
     }
 
     [HttpGet("Login")]
-    public IActionResult Login(string? returnUrl = null) { ViewData["ReturnUrl"] = returnUrl; return View(); }
+    public async Task<IActionResult> Login(string? returnUrl = null)
+    {
+        if (!string.IsNullOrWhiteSpace(returnUrl))
+        {
+            var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
+            var app = await _returnUrlValidator.ValidateAsync(returnUrl, ip);
+            if (app is null)
+            {
+                return View("UnapprovedApp");
+            }
+        }
+
+        ViewData["ReturnUrl"] = returnUrl;
+        return View();
+    }
 
     [HttpPost("Login")]
     [ValidateAntiForgeryToken]
@@ -27,6 +49,17 @@ public class AccountController : Controller
     {
         var normalizedEmail = email?.Trim() ?? string.Empty;
         var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
+
+        TenantApp? tenantApp = null;
+        if (!string.IsNullOrWhiteSpace(returnUrl))
+        {
+            tenantApp = await _returnUrlValidator.ValidateAsync(returnUrl, ip);
+            if (tenantApp is null)
+            {
+                return View("UnapprovedApp");
+            }
+        }
+
         var user = await _userManager.FindByEmailAsync(normalizedEmail);
 
         if (user is not null && !user.IsActive)
@@ -47,6 +80,12 @@ public class AccountController : Controller
                 await _userManager.UpdateAsync(user);
                 await _auditService.LogLogin(user.Id, normalizedEmail, true, ipAddress: ip);
             }
+
+            if (tenantApp is not null)
+            {
+                return Redirect(tenantApp.ReturnUrl!);
+            }
+
             return LocalRedirect(Url.IsLocalUrl(returnUrl) ? returnUrl! : "/");
         }
 

@@ -27,6 +27,7 @@ public class UsersControllerTests
             .AddEntityFrameworkStores<SsoDbContext>()
             .AddDefaultTokenProviders();
         services.AddScoped<IAuditService, AuditService>();
+        services.AddScoped<IReturnUrlValidator, ReturnUrlValidator>();
 
         return services.BuildServiceProvider();
     }
@@ -331,7 +332,8 @@ public class UsersControllerTests
         };
         Assert.True((await userManager.CreateAsync(user, "Password1!")).Succeeded);
 
-        var controller = new Gateway.Controllers.AccountController(signInManager, userManager, auditService);
+        var returnUrlValidator = provider.GetRequiredService<IReturnUrlValidator>();
+        var controller = new Gateway.Controllers.AccountController(signInManager, userManager, auditService, returnUrlValidator);
         controller.ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() };
         controller.HttpContext.Connection.RemoteIpAddress = System.Net.IPAddress.Parse("127.0.0.1");
 
@@ -361,7 +363,8 @@ public class UsersControllerTests
         };
         Assert.True((await userManager.CreateAsync(user, "Password1!")).Succeeded);
 
-        var controller = new Gateway.Controllers.AccountController(signInManager, userManager, auditService);
+        var returnUrlValidator = provider.GetRequiredService<IReturnUrlValidator>();
+        var controller = new Gateway.Controllers.AccountController(signInManager, userManager, auditService, returnUrlValidator);
         var httpContext = new DefaultHttpContext();
         httpContext.Connection.RemoteIpAddress = System.Net.IPAddress.Parse("192.168.1.5");
         controller.ControllerContext = new ControllerContext { HttpContext = httpContext };
@@ -392,7 +395,8 @@ public class UsersControllerTests
         };
         Assert.True((await userManager.CreateAsync(user, "Password1!")).Succeeded);
 
-        var controller = new Gateway.Controllers.AccountController(signInManager, userManager, auditService);
+        var returnUrlValidator = provider.GetRequiredService<IReturnUrlValidator>();
+        var controller = new Gateway.Controllers.AccountController(signInManager, userManager, auditService, returnUrlValidator);
         controller.ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() };
 
         var result = await controller.Login(user.Email!, "Password1!", false, null);
@@ -429,6 +433,110 @@ public class UsersControllerTests
         var log = await provider.GetRequiredService<SsoDbContext>().AuditLogs.SingleAsync(x => x.Action == "ToggleActive");
         Assert.Contains(user.Email!, log.Details);
         Assert.Equal("10.0.0.10", log.IpAddress);
+    }
+
+    [Fact]
+    public async Task LoginGet_WithReturnUrlForRegisteredApp_ShowsLoginForm()
+    {
+        await using var provider = BuildServiceProvider(nameof(LoginGet_WithReturnUrlForRegisteredApp_ShowsLoginForm));
+        var db = provider.GetRequiredService<SsoDbContext>();
+        db.TenantApps.Add(new TenantApp { Name = "Approved App", ReturnUrl = "https://approved.example.com/callback", IsEnabled = true });
+        await db.SaveChangesAsync();
+
+        var signInManager = provider.GetRequiredService<SignInManager<ApplicationUser>>();
+        var userManager = provider.GetRequiredService<UserManager<ApplicationUser>>();
+        var auditService = provider.GetRequiredService<IAuditService>();
+        var returnUrlValidator = provider.GetRequiredService<IReturnUrlValidator>();
+        var controller = new Gateway.Controllers.AccountController(signInManager, userManager, auditService, returnUrlValidator);
+        controller.ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() };
+
+        var result = await controller.Login("https://approved.example.com/callback");
+
+        var view = Assert.IsType<ViewResult>(result);
+        Assert.Null(view.ViewName);
+    }
+
+    [Fact]
+    public async Task LoginGet_WithReturnUrlForUnregisteredApp_ShowsUnapprovedAppView()
+    {
+        await using var provider = BuildServiceProvider(nameof(LoginGet_WithReturnUrlForUnregisteredApp_ShowsUnapprovedAppView));
+        var signInManager = provider.GetRequiredService<SignInManager<ApplicationUser>>();
+        var userManager = provider.GetRequiredService<UserManager<ApplicationUser>>();
+        var auditService = provider.GetRequiredService<IAuditService>();
+        var returnUrlValidator = provider.GetRequiredService<IReturnUrlValidator>();
+        var controller = new Gateway.Controllers.AccountController(signInManager, userManager, auditService, returnUrlValidator);
+        controller.ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() };
+
+        var result = await controller.Login("https://never-registered.example.com/callback");
+
+        var view = Assert.IsType<ViewResult>(result);
+        Assert.Equal("UnapprovedApp", view.ViewName);
+
+        var db = provider.GetRequiredService<SsoDbContext>();
+        var log = await db.AuditLogs.SingleAsync(x => x.Action == "InvalidReturnUrl");
+        Assert.Contains("never-registered.example.com", log.Details);
+    }
+
+    [Fact]
+    public async Task LoginPost_WithValidCredentialsAndRegisteredReturnUrl_RedirectsToTenantApp()
+    {
+        await using var provider = BuildServiceProvider(nameof(LoginPost_WithValidCredentialsAndRegisteredReturnUrl_RedirectsToTenantApp));
+        var db = provider.GetRequiredService<SsoDbContext>();
+        db.TenantApps.Add(new TenantApp { Name = "Approved App", ReturnUrl = "https://approved.example.com/callback", IsEnabled = true });
+        await db.SaveChangesAsync();
+
+        var userManager = provider.GetRequiredService<UserManager<ApplicationUser>>();
+        var signInManager = provider.GetRequiredService<SignInManager<ApplicationUser>>();
+        var auditService = provider.GetRequiredService<IAuditService>();
+        var returnUrlValidator = provider.GetRequiredService<IReturnUrlValidator>();
+
+        var user = new ApplicationUser
+        {
+            UserName = "sso.user@example.com",
+            Email = "sso.user@example.com",
+            EmailConfirmed = true,
+            IsActive = true
+        };
+        Assert.True((await userManager.CreateAsync(user, "Password1!")).Succeeded);
+
+        var controller = new Gateway.Controllers.AccountController(signInManager, userManager, auditService, returnUrlValidator);
+        controller.ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() };
+
+        var result = await controller.Login(user.Email!, "Password1!", false, "https://approved.example.com/callback");
+
+        var redirect = Assert.IsType<RedirectResult>(result);
+        Assert.Equal("https://approved.example.com/callback", redirect.Url);
+    }
+
+    [Fact]
+    public async Task LoginPost_WithUnregisteredReturnUrl_DoesNotSignInAndShowsUnapprovedAppView()
+    {
+        await using var provider = BuildServiceProvider(nameof(LoginPost_WithUnregisteredReturnUrl_DoesNotSignInAndShowsUnapprovedAppView));
+        var userManager = provider.GetRequiredService<UserManager<ApplicationUser>>();
+        var signInManager = provider.GetRequiredService<SignInManager<ApplicationUser>>();
+        var auditService = provider.GetRequiredService<IAuditService>();
+        var returnUrlValidator = provider.GetRequiredService<IReturnUrlValidator>();
+
+        var user = new ApplicationUser
+        {
+            UserName = "blocked.user@example.com",
+            Email = "blocked.user@example.com",
+            EmailConfirmed = true,
+            IsActive = true
+        };
+        Assert.True((await userManager.CreateAsync(user, "Password1!")).Succeeded);
+
+        var controller = new Gateway.Controllers.AccountController(signInManager, userManager, auditService, returnUrlValidator);
+        controller.ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() };
+
+        var result = await controller.Login(user.Email!, "Password1!", false, "https://not-registered.example.com/callback");
+
+        var view = Assert.IsType<ViewResult>(result);
+        Assert.Equal("UnapprovedApp", view.ViewName);
+
+        var db = provider.GetRequiredService<SsoDbContext>();
+        Assert.DoesNotContain(db.AuditLogs, x => x.Action == "LoginSuccess");
+        Assert.Contains(db.AuditLogs, x => x.Action == "InvalidReturnUrl");
     }
 
 }
