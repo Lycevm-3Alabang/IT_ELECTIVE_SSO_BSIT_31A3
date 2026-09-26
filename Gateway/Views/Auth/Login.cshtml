@@ -132,6 +132,11 @@
                 font-size: 16px;
             }
 
+                input:focus {
+                    outline: 3px solid #999999;
+                    outline-offset: 2px;
+                }
+
             .login-button {
                 width: 100%;
                 padding: 13px;
@@ -147,12 +152,19 @@
                 .login-button:hover {
                     background: #444444;
                 }
+
+                .login-button:focus {
+                    outline: 3px solid #999999;
+                    outline-offset: 2px;
+                }
     </style>
 </head>
 
 <body>
 
-    <nav class="navbar">
+    <nav class="navbar"
+         aria-label="Main navigation">
+
         <div class="brand">
             IT ELECTIVE - SSO
         </div>
@@ -163,46 +175,67 @@
             <a href="/">External Apps</a>
             <a href="/">Privacy</a>
         </div>
+
     </nav>
 
     <main class="login-container">
-        <section class="login-card">
+
+        <section class="login-card"
+                 aria-labelledby="login-title">
 
             <header class="login-header">
-                <h1>IT ELECTIVE - SSO</h1>
+                <h1 id="login-title">IT ELECTIVE - SSO</h1>
                 <p>Single Sign-On Gateway</p>
             </header>
 
             @if (!string.IsNullOrWhiteSpace(appName))
             {
-                <div class="app-name">
+                <div class="app-name"
+                     aria-label="Application requesting login">
                     Sign in to <strong>@appName</strong>
                 </div>
             }
 
-            <div class="error"
+            <div id="login-error"
+                 class="error"
                  role="alert"
                  aria-live="assertive">
                 Invalid email or password.
             </div>
 
-            <form method="post">
+            <form method="post"
+                  action="/Auth/Login"
+                  aria-label="Login form">
+
+                <input type="hidden"
+                       name="returnUrl"
+                       value="@returnUrl" />
 
                 <div class="form-group">
-                    <label for="email">Email</label>
+                    <label for="email">
+                        Email
+                    </label>
 
                     <input type="email"
                            id="email"
                            name="email"
+                           autocomplete="username"
+                           aria-required="true"
+                           aria-describedby="login-error"
                            required />
                 </div>
 
                 <div class="form-group">
-                    <label for="password">Password</label>
+                    <label for="password">
+                        Password
+                    </label>
 
                     <input type="password"
                            id="password"
                            name="password"
+                           autocomplete="current-password"
+                           aria-required="true"
+                           aria-describedby="login-error"
                            required />
                 </div>
 
@@ -214,6 +247,7 @@
             </form>
 
         </section>
+
     </main>
 
 </body>
