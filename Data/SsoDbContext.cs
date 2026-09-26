@@ -45,6 +45,11 @@ public class SsoDbContext : IdentityDbContext<ApplicationUser>
 
             t.HasIndex(a => a.Name)
                 .IsUnique();
+
+            t.Property(a => a.ReturnUrl)
+                .HasMaxLength(500);
+
+            t.HasIndex(a => a.ReturnUrl);
         });
 
         builder.Entity<Group>(g =>

@@ -1,0 +1,16 @@
+@{
+    ViewData["Title"] = "Unapproved External App";
+}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="alert alert-danger">
+            <h1 class="h4 mb-2">Unapproved External App</h1>
+            <p class="mb-0">
+                The app that sent you here isn't registered with this SSO provider, so we can't
+                sign you in on its behalf. If you think this is a mistake, contact your administrator
+                and ask them to register the app's return URL.
+            </p>
+        </div>
+        <a asp-controller="Account" asp-action="Login" class="btn btn-outline-secondary">Back to sign in</a>
+    </div>
+</div>
