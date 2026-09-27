@@ -1,0 +1,35 @@
+@model Gateway.Models.Admin.EditAppViewModel
+@{
+    ViewData["Title"] = "Edit App";
+}
+
+<h1>Edit External App</h1>
+<p class="text-muted">Update the application's name and return URL.</p>
+
+<div class="row">
+    <div class="col-md-6">
+        <form asp-action="Edit" asp-route-id="@Model.Id" method="post">
+            <input type="hidden" asp-for="Id" />
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <div class="mb-3">
+                <label asp-for="Name" class="form-label"></label>
+                <input asp-for="Name" class="form-control" />
+                <span asp-validation-for="Name" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="ReturnUrl" class="form-label"></label>
+                <input asp-for="ReturnUrl" class="form-control" />
+                <span asp-validation-for="ReturnUrl" class="text-danger"></span>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Save Changes</button>
+            <a asp-action="Index" class="btn btn-link">Cancel</a>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

@@ -1,0 +1,35 @@
+@model Gateway.Models.Admin.CreateAppViewModel
+@{
+    ViewData["Title"] = "Register App";
+}
+
+<h1>Register External App</h1>
+<p class="text-muted">Add an application that can use SSO.</p>
+
+<div class="row">
+    <div class="col-md-6">
+        <form asp-action="Create" method="post">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <div class="mb-3">
+                <label asp-for="Name" class="form-label"></label>
+                <input asp-for="Name" class="form-control" placeholder="Example: HR Portal" />
+                <span asp-validation-for="Name" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="ReturnUrl" class="form-label"></label>
+                <input asp-for="ReturnUrl" class="form-control" placeholder="https://example.com/callback" />
+                <span asp-validation-for="ReturnUrl" class="text-danger"></span>
+                <div class="form-text">URL the user is sent back to after signing in via SSO.</div>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Register App</button>
+            <a asp-action="Index" class="btn btn-link">Cancel</a>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}
