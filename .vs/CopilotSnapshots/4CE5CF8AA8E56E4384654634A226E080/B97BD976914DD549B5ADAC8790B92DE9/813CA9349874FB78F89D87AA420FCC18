@@ -6,11 +6,11 @@ using Microsoft.EntityFrameworkCore;
 // Project Namespace Imports
 using Gateway.Areas.Admin.Models.TenantApps;
 
-// Data & model namespaces
+// Fallback using directives based on Gateway folder structure
 using Data;
+using Gateway.Data;
 using Models;
-
-// Optional audit service namespace
+using Gateway.Models;
 using Gateway.Services;
 
 namespace Gateway.Areas.Admin.Controllers
@@ -23,9 +23,9 @@ namespace Gateway.Areas.Admin.Controllers
         private const string DuplicateNameMessage = "An app with this name already exists.";
 
         private readonly SsoDbContext _db;
-        private readonly IAuditService? _audit;
+        private readonly ISsoAuditService _audit; // Updated to match ISsoAuditService in Gateway
 
-        public TenantAppController(SsoDbContext db, IAuditService? audit)
+        public TenantAppController(SsoDbContext db, ISsoAuditService audit)
         {
             _db = db;
             _audit = audit;
