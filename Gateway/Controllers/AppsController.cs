@@ -5,39 +5,34 @@ namespace Gateway.Controllers
 {
     public class AppsController : Controller
     {
-        private static readonly List<ExternalApp> Apps = new()
+ 
+        private static readonly List<ExternalApp> _apps = new()
         {
-            new ExternalApp
-            {
-                Id = 1,
-                Name = "Sample App",
-                ReturnUrl = "https://example.com/callback",
-                IsEnabled = true
-            }
+            new ExternalApp { Id = 1, Name = "Finance Portal", ReturnUrl = "https://finance.local/sso/callback", IsEnabled = true },
+            new ExternalApp { Id = 2, Name = "HR Dashboard", ReturnUrl = "https://hr.local/auth/callback", IsEnabled = false }
         };
 
-        // GET: /Apps
+ 
         public IActionResult Index()
         {
-            return View(Apps);
+            return View(_apps);
         }
 
-        // GET: /Apps/Create
+
         public IActionResult Create()
         {
             return View();
         }
 
-        // POST: /Apps/Create
+ 
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult Create(ExternalApp app)
         {
-            // Check if app name already exists
-            if (Apps.Any(x =>
-                x.Name.Equals(app.Name, StringComparison.OrdinalIgnoreCase)))
+      
+            if (_apps.Any(a => a.Name.Equals(app.Name, StringComparison.OrdinalIgnoreCase)))
             {
-                ModelState.AddModelError("Name", "An app with this name already exists.");
+                ModelState.AddModelError("Name", "An application with this name already exists.");
             }
 
             if (!ModelState.IsValid)
@@ -45,48 +40,33 @@ namespace Gateway.Controllers
                 return View(app);
             }
 
-            app.Id = Apps.Count == 0 ? 1 : Apps.Max(x => x.Id) + 1;
-            app.IsEnabled = true;
-
-            Apps.Add(app);
-
+            app.Id = _apps.Any() ? _apps.Max(a => a.Id) + 1 : 1;
+            _apps.Add(app);
+            TempData["SuccessMessage"] = "Application registered successfully.";
             return RedirectToAction(nameof(Index));
         }
 
-        // GET: /Apps/Edit/1
+ 
         public IActionResult Edit(int id)
         {
-            var app = Apps.FirstOrDefault(x => x.Id == id);
-
-            if (app == null)
-            {
-                return NotFound();
-            }
+            var app = _apps.FirstOrDefault(a => a.Id == id);
+            if (app == null) return NotFound();
 
             return View(app);
         }
 
-        // POST: /Apps/Edit/1
+      
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult Edit(int id, ExternalApp app)
         {
-            var existingApp = Apps.FirstOrDefault(x => x.Id == id);
+            var existingApp = _apps.FirstOrDefault(a => a.Id == id);
+            if (existingApp == null) return NotFound();
 
-            if (existingApp == null)
+            
+            if (_apps.Any(a => a.Id != id && a.Name.Equals(app.Name, StringComparison.OrdinalIgnoreCase)))
             {
-                return NotFound();
-            }
-
-            // Check duplicate name, excluding current app
-            if (Apps.Any(x =>
-                x.Id != id &&
-                x.Name.Equals(app.Name, StringComparison.OrdinalIgnoreCase)))
-            {
-                ModelState.AddModelError(
-                    "Name",
-                    "An app with this name already exists."
-                );
+                ModelState.AddModelError("Name", "An application with this name already exists.");
             }
 
             if (!ModelState.IsValid)
@@ -96,54 +76,46 @@ namespace Gateway.Controllers
 
             existingApp.Name = app.Name;
             existingApp.ReturnUrl = app.ReturnUrl;
+            existingApp.IsEnabled = app.IsEnabled;
 
+            TempData["SuccessMessage"] = "Application updated successfully.";
             return RedirectToAction(nameof(Index));
         }
 
-        // GET: /Apps/Delete/1
+      
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult ToggleStatus(int id)
+        {
+            var app = _apps.FirstOrDefault(a => a.Id == id);
+            if (app != null)
+            {
+                app.IsEnabled = !app.IsEnabled;
+                TempData["SuccessMessage"] = $"Application '{(app.IsEnabled ? "enabled" : "disabled")}' successfully.";
+            }
+            return RedirectToAction(nameof(Index));
+        }
+
+       
         public IActionResult Delete(int id)
         {
-            var app = Apps.FirstOrDefault(x => x.Id == id);
-
-            if (app == null)
-            {
-                return NotFound();
-            }
+            var app = _apps.FirstOrDefault(a => a.Id == id);
+            if (app == null) return NotFound();
 
             return View(app);
         }
 
-        // POST: /Apps/Delete/1
-        [HttpPost]
+       
+        [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public IActionResult DeleteConfirmed(int id)
         {
-            var app = Apps.FirstOrDefault(x => x.Id == id);
-
-            if (app == null)
+            var app = _apps.FirstOrDefault(a => a.Id == id);
+            if (app != null)
             {
-                return NotFound();
+                _apps.Remove(app);
+                TempData["SuccessMessage"] = "Application deleted successfully.";
             }
-
-            Apps.Remove(app);
-
-            return RedirectToAction(nameof(Index));
-        }
-
-        // POST: /Apps/Toggle
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public IActionResult Toggle(int id)
-        {
-            var app = Apps.FirstOrDefault(x => x.Id == id);
-
-            if (app == null)
-            {
-                return NotFound();
-            }
-
-            app.IsEnabled = !app.IsEnabled;
-
             return RedirectToAction(nameof(Index));
         }
     }

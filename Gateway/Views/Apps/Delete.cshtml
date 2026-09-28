@@ -1,67 +1,31 @@
 ﻿@model Gateway.Models.ExternalApp
 
 @{
-    ViewData["Title"] = "Delete App";
+    ViewData["Title"] = "Delete Application";
 }
 
-<div class="container mt-5">
+<h2 class="text-danger">Delete Application</h2>
+<p>Are you sure you want to delete this external app registration?</p>
 
-    <div class="row justify-content-center">
+<div class="card col-md-6 mb-3">
+    <div class="card-body">
+        <dl class="row mb-0">
+            <dt class="col-sm-4">App Name</dt>
+            <dd class="col-sm-8">@Model.Name</dd>
 
-        <div class="col-md-6">
+            <dt class="col-sm-4">Return URL</dt>
+            <dd class="col-sm-8"><code>@Model.ReturnUrl</code></dd>
 
-            <div class="card shadow-sm border-danger">
-
-                <div class="card-body p-4">
-
-                    <h3 class="text-danger">
-                        Delete Application
-                    </h3>
-
-                    <p>
-                        Are you sure you want to delete this application?
-                    </p>
-
-                    <div class="alert alert-warning">
-
-                        <strong>@Model.Name</strong>
-
-                        <br />
-
-                        <small>
-                            @Model.ReturnUrl
-                        </small>
-
-                    </div>
-
-                    <form asp-action="DeleteConfirmed"
-                          asp-route-id="@Model.Id"
-                          method="post">
-
-                        @Html.AntiForgeryToken()
-
-                        <div class="d-flex justify-content-end gap-2">
-
-                            <a asp-action="Index"
-                               class="btn btn-secondary">
-                                Cancel
-                            </a>
-
-                            <button type="submit"
-                                    class="btn btn-danger">
-                                Yes, Delete
-                            </button>
-
-                        </div>
-
-                    </form>
-
-                </div>
-
-            </div>
-
-        </div>
-
+            <dt class="col-sm-4">Status</dt>
+            <dd class="col-sm-8">
+                @(Model.IsEnabled ? "Active" : "Disabled")
+            </dd>
+        </dl>
     </div>
-
 </div>
+
+<form asp-action="Delete" method="post">
+    <input type="hidden" asp-for="Id" />
+    <button type="submit" class="btn btn-danger">Confirm Delete</button>
+    <a asp-action="Index" class="btn btn-secondary ms-2">Cancel</a>
+</form>
