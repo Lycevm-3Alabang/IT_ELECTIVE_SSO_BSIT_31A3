@@ -1,0 +1,231 @@
+﻿using System.Security.Claims;
+using Data;
+using Gateway.Areas.Admin.Models.TenantApps;
+using Gateway.Services;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Models;
+
+namespace Gateway.Areas.Admin.Controllers
+{
+// Issue 14 (#107): Tenant App Management UI.
+// Attribute routing is used because Program.cs has no area route mapped.
+// Deliberately does NOT inherit AdminBaseController (Roles = "Admin"): stacking
+// [Authorize] attributes is AND, which would require both roles.
+[Area("Admin")]
+[Authorize(Roles = "MainAdmin")]
+[Route("Admin/[controller]/[action]/{id?}")]
+public class TenantAppController : Controller
+{
+private const string DuplicateNameMessage = "An app with this name already exists.";
+
+private readonly SsoDbContext _db;
+private readonly IAuditService _audit;
+
+public TenantAppController(SsoDbContext db, IAuditService audit)
+{
+_db = db;
+_audit = audit;
+}
+
+private string? CurrentUserId => User.FindFirstValue(ClaimTypes.NameIdentifier);
+private string? RemoteIp => HttpContext.Connection.RemoteIpAddress?.ToString();
+
+// #108 - list
+[HttpGet]
+public async Task<IActionResult>
+Index()
+{
+var apps = await _db.TenantApps
+.AsNoTracking()
+.OrderBy(a => a.Name)
+.Select(a => new TenantAppListItemViewModel
+{
+Id = a.Id,
+Name = a.Name,
+ReturnUrl = a.ReturnUrl,
+IsEnabled = a.IsEnabled,
+GroupCount = a.Groups.Count
+})
+.ToListAsync();
+
+return View(new TenantAppListViewModel { Apps = apps });
+}
+
+// #112 - remote (client-side) unique name check
+[AcceptVerbs("GET", "POST")]
+public async Task<IActionResult>
+ValidateName(string? name, int id = 0)
+{
+var taken = !string.IsNullOrWhiteSpace(name) && await NameExistsAsync(name.Trim(), id);
+return Json(taken ? DuplicateNameMessage : true);
+}
+
+// #109 - create (modal content)
+[HttpGet]
+public IActionResult Create() => PartialView("_CreateEditModal", new TenantAppViewModel());
+
+[HttpPost]
+[ValidateAntiForgeryToken]
+public async Task<IActionResult>
+Create(TenantAppViewModel model)
+{
+model.Name = (model.Name ?? string.Empty).Trim();
+model.ReturnUrl = (model.ReturnUrl ?? string.Empty).Trim();
+
+if (await NameExistsAsync(model.Name, null))
+{
+ModelState.AddModelError(nameof(model.Name), DuplicateNameMessage);
+}
+
+if (!ModelState.IsValid)
+{
+return PartialView("_CreateEditModal", model);
+}
+
+var app = new TenantApp
+{
+Name = model.Name,
+ReturnUrl = model.ReturnUrl,
+IsEnabled = model.IsEnabled
+};
+_db.TenantApps.Add(app);
+
+if (!await TrySaveAsync())
+{
+ModelState.AddModelError(nameof(model.Name), DuplicateNameMessage);
+return PartialView("_CreateEditModal", model);
+}
+
+await _audit.LogAction("TenantAppCreated", $"Created app '{app.Name}' (Id {app.Id}).", CurrentUserId, RemoteIp);
+TempData["StatusMessage"] = $"App '{app.Name}' was created.";
+return Json(new { success = true });
+}
+
+// #110 - edit (modal content)
+[HttpGet]
+public async Task<IActionResult>
+Edit(int id)
+{
+var app = await _db.TenantApps.AsNoTracking().FirstOrDefaultAsync(a => a.Id == id);
+if (app is null)
+{
+return NotFound();
+}
+
+return PartialView("_CreateEditModal", new TenantAppViewModel
+{
+Id = app.Id,
+Name = app.Name,
+ReturnUrl = app.ReturnUrl,
+IsEnabled = app.IsEnabled
+});
+}
+
+[HttpPost]
+[ValidateAntiForgeryToken]
+public async Task<IActionResult>
+Edit(int id, TenantAppViewModel model)
+{
+var app = await _db.TenantApps.FirstOrDefaultAsync(a => a.Id == id);
+if (app is null)
+{
+return NotFound();
+}
+
+model.Id = id;
+model.Name = (model.Name ?? string.Empty).Trim();
+model.ReturnUrl = (model.ReturnUrl ?? string.Empty).Trim();
+
+if (await NameExistsAsync(model.Name, id))
+{
+ModelState.AddModelError(nameof(model.Name), DuplicateNameMessage);
+}
+
+if (!ModelState.IsValid)
+{
+return PartialView("_CreateEditModal", model);
+}
+
+app.Name = model.Name;
+app.ReturnUrl = model.ReturnUrl;
+app.IsEnabled = model.IsEnabled;
+
+if (!await TrySaveAsync())
+{
+ModelState.AddModelError(nameof(model.Name), DuplicateNameMessage);
+return PartialView("_CreateEditModal", model);
+}
+
+await _audit.LogAction("TenantAppUpdated", $"Updated app '{app.Name}' (Id {app.Id}).", CurrentUserId, RemoteIp);
+TempData["StatusMessage"] = $"App '{app.Name}' was updated.";
+return Json(new { success = true });
+}
+
+// #113 - enable / disable
+[HttpPost]
+[ValidateAntiForgeryToken]
+public async Task<IActionResult>
+ToggleStatus(int id)
+{
+var app = await _db.TenantApps.FirstOrDefaultAsync(a => a.Id == id);
+if (app is null)
+{
+return NotFound();
+}
+
+app.IsEnabled = !app.IsEnabled;
+await _db.SaveChangesAsync();
+
+var state = app.IsEnabled ? "enabled" : "disabled";
+await _audit.LogAction($"TenantApp{(app.IsEnabled ? "Enabled" : "Disabled")}",
+$"App '{app.Name}' (Id {app.Id}) {state}.", CurrentUserId, RemoteIp);
+TempData["StatusMessage"] = $"App '{app.Name}' was {state}.";
+return RedirectToAction(nameof(Index));
+}
+
+// #111 - delete (posted from the confirmation modal)
+[HttpPost]
+[ValidateAntiForgeryToken]
+public async Task<IActionResult>
+Delete(int id)
+{
+var app = await _db.TenantApps.FirstOrDefaultAsync(a => a.Id == id);
+if (app is null)
+{
+return NotFound();
+}
+
+_db.TenantApps.Remove(app); // groups cascade; audit log FKs are set null
+await _db.SaveChangesAsync();
+
+await _audit.LogAction("TenantAppDeleted", $"Deleted app '{app.Name}' (Id {id}).", CurrentUserId, RemoteIp);
+TempData["StatusMessage"] = $"App '{app.Name}' was deleted.";
+return RedirectToAction(nameof(Index));
+}
+
+private Task<bool>
+NameExistsAsync(string name, int? excludeId)
+{
+var lowered = name.ToLower();
+return _db.TenantApps.AnyAsync(a => a.Name.ToLower() == lowered && (excludeId == null || a.Id != excludeId));
+}
+
+// The unique index on Name is the final guard against races.
+private async Task<bool>
+TrySaveAsync()
+{
+try
+{
+await _db.SaveChangesAsync();
+return true;
+}
+catch (DbUpdateException)
+{
+_db.ChangeTracker.Clear();
+return false;
+}
+}
+}
+}
