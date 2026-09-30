@@ -1,0 +1,43 @@
+@model Gateway.Models.Admin.CreateGroupViewModel
+@{
+    ViewData["Title"] = "Create group";
+}
+
+<h1>Create group</h1>
+
+<div class="row">
+    <div class="col-md-6">
+        <form asp-action="Create" method="post">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <div class="mb-3">
+                <label asp-for="TenantAppId" class="form-label"></label>
+                <select asp-for="TenantAppId" class="form-select" asp-items="Model.TenantAppOptions">
+                    <option value="">-- Select an app --</option>
+                </select>
+                <span asp-validation-for="TenantAppId" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="GroupName" class="form-label"></label>
+                <input asp-for="GroupName" class="form-control" placeholder="e.g. Admin" />
+                <span asp-validation-for="GroupName" class="text-danger"></span>
+                <small class="text-muted">Automatically prefixed with the app name, e.g. "SalesApp-Admin".</small>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="PowerLevel" class="form-label"></label>
+                <input asp-for="PowerLevel" class="form-control" type="number" min="0" max="100" value="0" />
+                <span asp-validation-for="PowerLevel" class="text-danger"></span>
+                <small class="text-muted">0 = highest power. Higher numbers mean less access.</small>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Create</button>
+            <a asp-action="Index" class="btn btn-link">Cancel</a>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

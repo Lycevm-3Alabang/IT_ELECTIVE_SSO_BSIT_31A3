@@ -1,0 +1,53 @@
+@model Gateway.Models.Admin.GroupListViewModel
+@{
+    ViewData["Title"] = "Groups";
+}
+
+<h1>Groups</h1>
+
+@if (TempData["StatusMessage"] is string statusMessage)
+{
+    <div class="alert alert-info">@statusMessage</div>
+}
+
+<p>
+    <a class="btn btn-primary" asp-action="Create">Create group</a>
+</p>
+
+@Html.AntiForgeryToken()
+
+<table class="table table-striped align-middle">
+    <thead>
+        <tr>
+            <th>Group</th>
+            <th>App</th>
+            <th>Level</th>
+            <th>Created</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var group in Model.Groups)
+        {
+            <tr id="group-row-@group.Id">
+                <td>@group.Name</td>
+                <td>@group.AppName</td>
+                <td><span class="badge bg-secondary">@group.PowerLevel</span></td>
+                <td>@group.CreatedAt.ToString("yyyy-MM-dd")</td>
+                <td class="text-end">
+                    <a class="btn btn-sm btn-outline-secondary" asp-action="Edit" asp-route-id="@group.Id">Edit</a>
+                    <form asp-action="Delete" asp-route-id="@group.Id" method="post" class="d-inline"
+                          onsubmit="return confirm('Remove @group.Name?');">
+                        <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                    </form>
+                </td>
+            </tr>
+        }
+        @if (!Model.Groups.Any())
+        {
+            <tr>
+                <td colspan="5" class="text-center text-muted">No groups found.</td>
+            </tr>
+        }
+    </tbody>
+</table>

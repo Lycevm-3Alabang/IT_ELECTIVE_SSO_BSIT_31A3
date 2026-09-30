@@ -61,10 +61,18 @@ public class SsoDbContext : IdentityDbContext<ApplicationUser>
                 .HasColumnName("Name")
                 .HasMaxLength(100);
 
+            g.Property(x => x.PowerLevel)
+                .IsRequired();
+
             g.HasOne(x => x.TenantApp)
                 .WithMany(t => t.Groups)
                 .HasForeignKey(x => x.TenantAppId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            // Group name (already app-prefixed, e.g. "SalesApp-Admin") must
+            // be unique within its own app so two groups can't collide.
+            g.HasIndex(x => new { x.TenantAppId, x.Name })
+                .IsUnique();
         });
 
         builder.Entity<UserGroup>(ug =>
