@@ -1,234 +1,261 @@
-﻿using System.Security.Cryptography;
+using System.Security.Claims;
+using System.Security.Cryptography;
 using Gateway.Areas.Admin.Models.Users;
+using Gateway.Services;
+using Data;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Models;
 
-namespace Gateway.Areas.Admin.Controllers
+namespace Gateway.Areas.Admin.Controllers;
+
+public class UsersController : AdminBaseController
 {
-    public class UsersController : AdminBaseController
+    private const int MaxPageSize = 100;
+
+    private readonly UserManager<ApplicationUser> _userManager;
+    private readonly SsoDbContext _db;
+    private readonly IAuditService _auditService;
+
+    public UsersController(
+        UserManager<ApplicationUser> userManager,
+        SsoDbContext db,
+        IAuditService auditService)
     {
-        // TODO: replace with real EF Core-backed storage once Issue 4 is merged.
-        private static readonly List<UserRecord> Users = new()
+        _userManager = userManager;
+        _db = db;
+        _auditService = auditService;
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Index(string? search, int page = 1, int pageSize = 10)
+    {
+        page = Math.Max(1, page);
+        pageSize = Math.Clamp(pageSize, 1, MaxPageSize);
+
+        var query = _userManager.Users.AsNoTracking();
+        if (!string.IsNullOrWhiteSpace(search))
         {
-            new UserRecord
+            var term = search.Trim().ToUpperInvariant();
+            query = query.Where(u => u.NormalizedEmail != null && u.NormalizedEmail.Contains(term));
+        }
+
+        query = query.OrderBy(u => u.Email);
+        var totalCount = await query.CountAsync();
+        var users = await query.Skip((page - 1) * pageSize).Take(pageSize)
+            .Select(u => new UserListItemViewModel
             {
-                Id = "1",
-                Email = "admin@example.com",
-                IsActive = true,
-                CreatedAt = DateTime.UtcNow.AddDays(-30),
-                LastLoginAt = DateTime.UtcNow.AddHours(-3),
-                Groups = new List<string> { "Administrators" }
-            },
-            new UserRecord
-            {
-                Id = "2",
-                Email = "jdoe@example.com",
-                IsActive = true,
-                CreatedAt = DateTime.UtcNow.AddDays(-10),
-                Groups = new List<string> { "Staff" }
-            }
+                Id = u.Id,
+                Email = u.Email ?? string.Empty,
+                IsActive = u.IsActive,
+                CreatedAt = u.CreatedAt,
+                LastLoginAt = u.LastLoginAt
+            }).ToListAsync();
+
+        return View(new UserListViewModel
+        {
+            SearchTerm = search,
+            Users = users,
+            Page = page,
+            PageSize = pageSize,
+            TotalCount = totalCount
+        });
+    }
+
+    [HttpGet]
+    public IActionResult Create() => View(new CreateUserViewModel());
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Create(CreateUserViewModel model)
+    {
+        if (!ModelState.IsValid) return View(model);
+
+        var email = model.Email.Trim();
+        if (await _userManager.FindByEmailAsync(email) is not null)
+        {
+            ModelState.AddModelError(nameof(model.Email), "A user with this email already exists.");
+            return View(model);
+        }
+
+        var user = new ApplicationUser
+        {
+            UserName = email,
+            Email = email,
+            EmailConfirmed = true,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
         };
 
-        private static readonly List<AuditLogEntry> AuditLog = new();
-
-        // GET: /Admin/Users
-        public IActionResult Index(string? search)
+        var result = await _userManager.CreateAsync(user, model.TemporaryPassword);
+        if (!result.Succeeded)
         {
-            var query = Users.AsEnumerable();
-
-            if (!string.IsNullOrWhiteSpace(search))
-            {
-                query = query.Where(u =>
-                    u.Email.Contains(search, StringComparison.OrdinalIgnoreCase));
-            }
-
-            var model = new UserListViewModel
-            {
-                SearchTerm = search,
-                Users = query
-                    .OrderBy(u => u.Email)
-                    .Select(u => new UserListItemViewModel
-                    {
-                        Id = u.Id,
-                        Email = u.Email,
-                        IsActive = u.IsActive,
-                        CreatedAt = u.CreatedAt
-                    })
-                    .ToList()
-            };
-
+            foreach (var error in result.Errors) ModelState.AddModelError(string.Empty, error.Description);
             return View(model);
         }
 
-        // GET: /Admin/Users/Details/1
-        public IActionResult Details(string id)
+        await _auditService.LogAction(
+            "CreateUser",
+            $"Admin created user {email}.",
+            CurrentAdminId(),
+            HttpContext.Connection.RemoteIpAddress?.ToString());
+
+        TempData["StatusMessage"] = $"User {email} was created.";
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Details(string id)
+    {
+        if (string.IsNullOrWhiteSpace(id)) return NotFound();
+        var user = await _userManager.FindByIdAsync(id);
+        if (user is null) return NotFound();
+
+        var groups = await _db.UserGroups
+            .Where(ug => ug.UserId == id)
+            .Include(ug => ug.Group)
+            .Select(ug => ug.Group.Name)
+            .ToListAsync();
+
+        var recentActivity = await _db.AuditLogs.AsNoTracking()
+            .Where(x => x.UserId == id)
+            .OrderByDescending(x => x.Timestamp)
+            .ThenByDescending(x => x.Id)
+            .Take(10)
+            .Select(x => new AuditLogEntry
+            {
+                UserId = id,
+                Action = x.Action,
+                PerformedBy = x.Email ?? x.UserId ?? "system",
+                Timestamp = x.Timestamp
+            }).ToListAsync();
+
+        return View(new UserDetailsViewModel
         {
-            var user = Users.FirstOrDefault(u => u.Id == id);
+            Id = user.Id,
+            Email = user.Email ?? string.Empty,
+            IsActive = user.IsActive,
+            CreatedAt = user.CreatedAt,
+            LastLoginAt = user.LastLoginAt,
+            Groups = groups,
+            RecentActivity = recentActivity
+        });
+    }
 
-            if (user == null)
-            {
-                return NotFound();
-            }
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ToggleActive(string id)
+    {
+        var user = await _userManager.FindByIdAsync(id);
+        if (user is null) return NotFound();
 
-            var model = new UserDetailsViewModel
-            {
-                Id = user.Id,
-                Email = user.Email,
-                IsActive = user.IsActive,
-                CreatedAt = user.CreatedAt,
-                LastLoginAt = user.LastLoginAt,
-                Groups = user.Groups,
-                RecentActivity = AuditLog
-                    .Where(a => a.UserId == id)
-                    .OrderByDescending(a => a.Timestamp)
-                    .Take(5)
-                    .ToList()
-            };
-
-            return View(model);
-        }
-
-        // GET: /Admin/Users/Create
-        public IActionResult Create()
+        user.IsActive = !user.IsActive;
+        var result = await _userManager.UpdateAsync(user);
+        if (!result.Succeeded)
         {
-            return View();
-        }
-
-        // POST: /Admin/Users/Create
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public IActionResult Create(CreateUserViewModel model)
-        {
-            if (Users.Any(u => u.Email.Equals(model.Email, StringComparison.OrdinalIgnoreCase)))
-            {
-                ModelState.AddModelError(nameof(model.Email), "A user with this email already exists.");
-            }
-
-            if (!ModelState.IsValid)
-            {
-                return View(model);
-            }
-
-            var user = new UserRecord
-            {
-                Id = (Users.Count == 0 ? 1 : Users.Max(u => int.Parse(u.Id)) + 1).ToString(),
-                Email = model.Email,
-                TemporaryPassword = model.TemporaryPassword,
-                IsActive = true,
-                CreatedAt = DateTime.UtcNow
-            };
-
-            Users.Add(user);
-            LogAction(user.Id, "User created");
-
-            TempData["StatusMessage"] = $"User {user.Email} was created.";
+            var errors = string.Join("; ", result.Errors.Select(e => e.Description));
+            if (IsAjaxRequest()) return StatusCode(500, new { success = false, message = errors });
+            TempData["StatusMessage"] = errors;
             return RedirectToAction(nameof(Index));
         }
 
-        // POST: /Admin/Users/ToggleActive/1
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public IActionResult ToggleActive(string id)
+        await _auditService.LogAction(
+            "ToggleActive",
+            $"Admin changed {user.Email} to {(user.IsActive ? "active" : "inactive")}.",
+            CurrentAdminId(),
+            HttpContext.Connection.RemoteIpAddress?.ToString());
+
+        if (IsAjaxRequest())
         {
-            var user = Users.FirstOrDefault(u => u.Id == id);
-
-            if (user == null)
-            {
-                return NotFound();
-            }
-
-            user.IsActive = !user.IsActive;
-            LogAction(user.Id, user.IsActive ? "User activated" : "User deactivated");
-
-            return Json(new { isActive = user.IsActive });
+            return Json(new { success = true, id = user.Id, isActive = user.IsActive, status = user.IsActive ? "Active" : "Inactive" });
         }
 
-        // POST: /Admin/Users/Delete/1
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public IActionResult Delete(string id)
+        TempData["StatusMessage"] = $"User {user.Email} is now {(user.IsActive ? "active" : "inactive")}.";
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Delete(string id)
+    {
+        var user = await _userManager.FindByIdAsync(id);
+        if (user is null) return NotFound();
+
+        user.IsActive = false;
+        var result = await _userManager.UpdateAsync(user);
+        if (!result.Succeeded)
         {
-            var user = Users.FirstOrDefault(u => u.Id == id);
-
-            if (user == null)
-            {
-                return NotFound();
-            }
-
-            // Soft delete: deactivate rather than remove the record.
-            user.IsActive = false;
-            LogAction(user.Id, "User deleted");
-
-            TempData["StatusMessage"] = $"User {user.Email} was deleted.";
+            TempData["StatusMessage"] = "Failed to deactivate the user: " + string.Join("; ", result.Errors.Select(e => e.Description));
             return RedirectToAction(nameof(Index));
         }
 
-        // POST: /Admin/Users/ResetPassword/1
-        // Issue 117-122: generates a new temporary password for a user,
-        // returns it to the confirmation dialog, and records an audit entry.
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public IActionResult ResetPassword(string id)
+        await _auditService.LogAction(
+            "DeleteUser",
+            $"Admin soft-deleted/deactivated {user.Email}.",
+            CurrentAdminId(),
+            HttpContext.Connection.RemoteIpAddress?.ToString());
+
+        TempData["StatusMessage"] = $"User {user.Email} was deactivated.";
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ResetPassword(string id)
+    {
+        var user = await _userManager.FindByIdAsync(id);
+        if (user is null) return NotFound();
+
+        var temporaryPassword = GenerateTemporaryPassword();
+        var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+        var result = await _userManager.ResetPasswordAsync(user, token, temporaryPassword);
+        if (!result.Succeeded)
         {
-            var user = Users.FirstOrDefault(u => u.Id == id);
-
-            if (user == null)
-            {
-                return NotFound();
-            }
-
-            var temporaryPassword = GenerateTemporaryPassword();
-            user.TemporaryPassword = temporaryPassword;
-
-            LogAction(user.Id, "Password reset");
-
-            return Json(new
-            {
-                email = user.Email,
-                temporaryPassword,
-                resetAt = DateTime.UtcNow.ToLocalTime().ToString("MMM d, yyyy h:mm tt")
-            });
+            var errors = string.Join("; ", result.Errors.Select(e => e.Description));
+            if (IsAjaxRequest()) return StatusCode(500, new { success = false, message = errors });
+            TempData["StatusMessage"] = "Password reset failed: " + errors;
+            return RedirectToAction(nameof(Details), new { id });
         }
 
-        private void LogAction(string userId, string action)
+        await _auditService.LogAction(
+            "ResetPassword",
+            $"Admin reset the password for {user.Email}.",
+            CurrentAdminId(),
+            HttpContext.Connection.RemoteIpAddress?.ToString());
+
+        if (IsAjaxRequest())
         {
-            AuditLog.Add(new AuditLogEntry
-            {
-                UserId = userId,
-                Action = action,
-                PerformedBy = User.Identity?.Name ?? "system",
-                Timestamp = DateTime.UtcNow
-            });
+            return Json(new { success = true, email = user.Email, temporaryPassword });
         }
 
-        private static string GenerateTemporaryPassword()
+        TempData["StatusMessage"] = $"Password for {user.Email} was reset. Temporary password: {temporaryPassword}";
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
+    private string? CurrentAdminId() => User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+    private bool IsAjaxRequest() => Request.Headers.TryGetValue("X-Requested-With", out var value) &&
+        string.Equals(value.ToString(), "XMLHttpRequest", StringComparison.OrdinalIgnoreCase);
+
+    private static string GenerateTemporaryPassword()
+    {
+        const string upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+        const string lower = "abcdefghijkmnopqrstuvwxyz";
+        const string digits = "23456789";
+        const string symbols = "!@#$%^&*";
+        const string all = upper + lower + digits + symbols;
+        Span<char> password = stackalloc char[12];
+        password[0] = upper[RandomNumberGenerator.GetInt32(upper.Length)];
+        password[1] = lower[RandomNumberGenerator.GetInt32(lower.Length)];
+        password[2] = digits[RandomNumberGenerator.GetInt32(digits.Length)];
+        password[3] = symbols[RandomNumberGenerator.GetInt32(symbols.Length)];
+        for (var i = 4; i < password.Length; i++) password[i] = all[RandomNumberGenerator.GetInt32(all.Length)];
+        for (var i = password.Length - 1; i > 0; i--)
         {
-            const string upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
-            const string lower = "abcdefghijkmnopqrstuvwxyz";
-            const string digits = "23456789";
-            const string symbols = "!@#$%^&*";
-            const string all = upper + lower + digits + symbols;
-
-            Span<char> password = stackalloc char[12];
-
-            // Guarantee at least one of each character class.
-            password[0] = upper[RandomNumberGenerator.GetInt32(upper.Length)];
-            password[1] = lower[RandomNumberGenerator.GetInt32(lower.Length)];
-            password[2] = digits[RandomNumberGenerator.GetInt32(digits.Length)];
-            password[3] = symbols[RandomNumberGenerator.GetInt32(symbols.Length)];
-
-            for (var i = 4; i < password.Length; i++)
-            {
-                password[i] = all[RandomNumberGenerator.GetInt32(all.Length)];
-            }
-
-            // Shuffle so the guaranteed characters aren't always in the same spots.
-            for (var i = password.Length - 1; i > 0; i--)
-            {
-                var j = RandomNumberGenerator.GetInt32(i + 1);
-                (password[i], password[j]) = (password[j], password[i]);
-            }
-
-            return new string(password);
+            var j = RandomNumberGenerator.GetInt32(i + 1);
+            (password[i], password[j]) = (password[j], password[i]);
         }
+        return new string(password);
     }
 }

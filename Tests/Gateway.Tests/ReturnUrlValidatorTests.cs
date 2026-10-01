@@ -1,4 +1,6 @@
-﻿using Data;
+using Data;
+using Gateway.Controllers;
+using Gateway.Models;
 using Gateway.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -177,4 +179,70 @@ public class ReturnUrlValidatorTests
 
         Assert.Null(extracted);
     }
+    [Fact]
+    public async Task TenantAppsController_Create_PersistsRegisteredApp()
+    {
+        await using var provider = BuildServiceProvider(nameof(TenantAppsController_Create_PersistsRegisteredApp));
+        var db = provider.GetRequiredService<SsoDbContext>();
+        var controller = new TenantAppsController(db);
+
+        var result = await controller.Create(new ExternalApp
+        {
+            Name = "Sales App",
+            ReturnUrl = "https://sales.example.com/callback"
+        });
+
+        Assert.IsType<RedirectToActionResult>(result);
+        var saved = await db.TenantApps.SingleAsync();
+        Assert.Equal("Sales App", saved.Name);
+        Assert.Equal("https://sales.example.com/callback", saved.ReturnUrl);
+        Assert.True(saved.IsEnabled);
+        Assert.NotEqual(default, saved.CreatedAt);
+    }
+
+    [Fact]
+    public async Task TenantAppsController_Create_RejectsDuplicateName()
+    {
+        await using var provider = BuildServiceProvider(nameof(TenantAppsController_Create_RejectsDuplicateName));
+        var db = provider.GetRequiredService<SsoDbContext>();
+        db.TenantApps.Add(new TenantApp
+        {
+            Name = "Sales App",
+            ReturnUrl = "https://one.example.com/callback",
+            IsEnabled = true
+        });
+        await db.SaveChangesAsync();
+
+        var controller = new TenantAppsController(db);
+        var result = await controller.Create(new ExternalApp
+        {
+            Name = " sales app ",
+            ReturnUrl = "https://two.example.com/callback"
+        });
+
+        Assert.IsType<Microsoft.AspNetCore.Mvc.ViewResult>(result);
+        Assert.False(controller.ModelState.IsValid);
+        Assert.Contains(nameof(ExternalApp.Name), controller.ModelState.Keys);
+        Assert.Equal(1, await db.TenantApps.CountAsync());
+    }
+
+    [Fact]
+    public async Task TenantAppsController_Create_RejectsNonHttpReturnUrl()
+    {
+        await using var provider = BuildServiceProvider(nameof(TenantAppsController_Create_RejectsNonHttpReturnUrl));
+        var db = provider.GetRequiredService<SsoDbContext>();
+        var controller = new TenantAppsController(db);
+
+        var result = await controller.Create(new ExternalApp
+        {
+            Name = "Bad App",
+            ReturnUrl = "javascript:alert(1)"
+        });
+
+        Assert.IsType<Microsoft.AspNetCore.Mvc.ViewResult>(result);
+        Assert.False(controller.ModelState.IsValid);
+        Assert.Contains(nameof(ExternalApp.ReturnUrl), controller.ModelState.Keys);
+        Assert.Empty(db.TenantApps);
+    }
+
 }
