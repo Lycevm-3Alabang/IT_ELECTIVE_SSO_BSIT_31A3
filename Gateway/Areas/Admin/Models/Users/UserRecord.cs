@@ -1,22 +1,6 @@
-﻿namespace Gateway.Areas.Admin.Models.Users
-{
-    // In-memory representation of a user until Issue 4 (EF Core / real data
-    // store) is merged. Mirrors the pattern used by AppsController.
-    public class UserRecord
-    {
-        public string Id { get; set; } = string.Empty;
+namespace Gateway.Areas.Admin.Models.Users;
 
-        public string Email { get; set; } = string.Empty;
-
-        public bool IsActive { get; set; } = true;
-
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-
-        public DateTime? LastLoginAt { get; set; }
-
-        public List<string> Groups { get; set; } = new();
-
-        // Placeholder only - a real implementation must hash this (Issue 4).
-        public string TemporaryPassword { get; set; } = string.Empty;
-    }
-}
+// Retained for project-structure compatibility. Issue 4 now uses ASP.NET Core
+// Identity/ApplicationUser as the persistent user record; this placeholder is
+// no longer used by the Admin Users controller.
+public class UserRecord { }

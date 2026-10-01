@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Models;
@@ -47,7 +47,11 @@ public class SsoDbContext : IdentityDbContext<ApplicationUser>
                 .IsUnique();
 
             t.Property(a => a.ReturnUrl)
+                .IsRequired()
                 .HasMaxLength(500);
+
+            t.Property(a => a.CreatedAt)
+                .IsRequired();
 
             t.HasIndex(a => a.ReturnUrl);
         });
@@ -60,6 +64,15 @@ public class SsoDbContext : IdentityDbContext<ApplicationUser>
                 .IsRequired()
                 .HasColumnName("Name")
                 .HasMaxLength(100);
+
+            g.Property(x => x.PowerLevel)
+                .IsRequired();
+
+            g.Property(x => x.CreatedAt)
+                .IsRequired();
+
+            g.HasIndex(x => new { x.TenantAppId, x.Name })
+                .IsUnique();
 
             g.HasOne(x => x.TenantApp)
                 .WithMany(t => t.Groups)

@@ -1,150 +1,132 @@
-﻿using Gateway.Models;
+using Data;
+using Gateway.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Models;
 
-namespace Gateway.Controllers
+namespace Gateway.Controllers;
+
+[Area("Admin")]
+[Authorize(Roles = SeedData.AdminRole)]
+[Route("Admin/TenantApps")]
+public class TenantAppsController : Controller
 {
-    public class AppsController : Controller
+    private readonly SsoDbContext _db;
+
+    public TenantAppsController(SsoDbContext db) => _db = db;
+
+    [HttpGet("")]
+    public async Task<IActionResult> Index()
     {
-        private static readonly List<ExternalApp> Apps = new()
+        var apps = await _db.TenantApps.AsNoTracking().OrderBy(a => a.Name).ToListAsync();
+        return View("~/Views/Apps/Index.cshtml", apps.Select(ToViewModel));
+    }
+
+    [HttpGet("Create")]
+    public IActionResult Create() => View("~/Views/Apps/Create.cshtml", new ExternalApp());
+
+    [HttpPost("Create")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Create(ExternalApp model)
+    {
+        NormalizeAndValidateUrl(model);
+        if (await _db.TenantApps.AnyAsync(a => a.Name.ToLower() == model.Name.Trim().ToLower()))
+            ModelState.AddModelError(nameof(model.Name), "An app with this name already exists.");
+
+        if (!ModelState.IsValid) return View("~/Views/Apps/Create.cshtml", model);
+
+        var entity = new TenantApp
         {
-            new ExternalApp
-            {
-                Id = 1,
-                Name = "Sample App",
-                ReturnUrl = "https://example.com/callback",
-                IsEnabled = true
-            }
+            Name = model.Name.Trim(),
+            ReturnUrl = model.ReturnUrl.Trim(),
+            IsEnabled = true,
+            CreatedAt = DateTime.UtcNow
         };
+        _db.TenantApps.Add(entity);
+        await _db.SaveChangesAsync();
+        return RedirectToAction(nameof(Index));
+    }
 
-        // GET: /Apps
-        public IActionResult Index()
+    [HttpGet("Edit/{id:int}")]
+    public async Task<IActionResult> Edit(int id)
+    {
+        var entity = await _db.TenantApps.FindAsync(id);
+        if (entity is null) return NotFound();
+        return View("~/Views/Apps/Edit.cshtml", ToViewModel(entity));
+    }
+
+    [HttpPost("Edit/{id:int}")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Edit(int id, ExternalApp model)
+    {
+        var entity = await _db.TenantApps.FindAsync(id);
+        if (entity is null) return NotFound();
+
+        NormalizeAndValidateUrl(model);
+        if (await _db.TenantApps.AnyAsync(a => a.Id != id && a.Name.ToLower() == model.Name.Trim().ToLower()))
+            ModelState.AddModelError(nameof(model.Name), "An app with this name already exists.");
+
+        if (!ModelState.IsValid)
         {
-            return View(Apps);
+            model.Id = id;
+            model.IsEnabled = entity.IsEnabled;
+            model.CreatedAt = entity.CreatedAt;
+            return View("~/Views/Apps/Edit.cshtml", model);
         }
 
-        // GET: /Apps/Create
-        public IActionResult Create()
+        entity.Name = model.Name.Trim();
+        entity.ReturnUrl = model.ReturnUrl.Trim();
+        await _db.SaveChangesAsync();
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpGet("Delete/{id:int}")]
+    public async Task<IActionResult> Delete(int id)
+    {
+        var entity = await _db.TenantApps.AsNoTracking().FirstOrDefaultAsync(a => a.Id == id);
+        if (entity is null) return NotFound();
+        return View("~/Views/Apps/Delete.cshtml", ToViewModel(entity));
+    }
+
+    [HttpPost("Delete/{id:int}")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteConfirmed(int id)
+    {
+        var entity = await _db.TenantApps.FindAsync(id);
+        if (entity is null) return NotFound();
+        _db.TenantApps.Remove(entity);
+        await _db.SaveChangesAsync();
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost("Toggle/{id:int}")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Toggle(int id)
+    {
+        var entity = await _db.TenantApps.FindAsync(id);
+        if (entity is null) return NotFound();
+        entity.IsEnabled = !entity.IsEnabled;
+        await _db.SaveChangesAsync();
+        return RedirectToAction(nameof(Index));
+    }
+
+    private static ExternalApp ToViewModel(TenantApp entity) => new()
+    {
+        Id = entity.Id, Name = entity.Name, ReturnUrl = entity.ReturnUrl ?? string.Empty,
+        IsEnabled = entity.IsEnabled, CreatedAt = entity.CreatedAt
+    };
+
+    private void NormalizeAndValidateUrl(ExternalApp model)
+    {
+        model.Name = model.Name?.Trim() ?? string.Empty;
+        model.ReturnUrl = model.ReturnUrl?.Trim() ?? string.Empty;
+
+        if (!Uri.TryCreate(model.ReturnUrl, UriKind.Absolute, out var uri) ||
+            (uri.Scheme != Uri.UriSchemeHttps && uri.Scheme != Uri.UriSchemeHttp) ||
+            string.IsNullOrWhiteSpace(uri.Host))
         {
-            return View();
-        }
-
-        // POST: /Apps/Create
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public IActionResult Create(ExternalApp app)
-        {
-            // Check if app name already exists
-            if (Apps.Any(x =>
-                x.Name.Equals(app.Name, StringComparison.OrdinalIgnoreCase)))
-            {
-                ModelState.AddModelError("Name", "An app with this name already exists.");
-            }
-
-            if (!ModelState.IsValid)
-            {
-                return View(app);
-            }
-
-            app.Id = Apps.Count == 0 ? 1 : Apps.Max(x => x.Id) + 1;
-            app.IsEnabled = true;
-
-            Apps.Add(app);
-
-            return RedirectToAction(nameof(Index));
-        }
-
-        // GET: /Apps/Edit/1
-        public IActionResult Edit(int id)
-        {
-            var app = Apps.FirstOrDefault(x => x.Id == id);
-
-            if (app == null)
-            {
-                return NotFound();
-            }
-
-            return View(app);
-        }
-
-        // POST: /Apps/Edit/1
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public IActionResult Edit(int id, ExternalApp app)
-        {
-            var existingApp = Apps.FirstOrDefault(x => x.Id == id);
-
-            if (existingApp == null)
-            {
-                return NotFound();
-            }
-
-            // Check duplicate name, excluding current app
-            if (Apps.Any(x =>
-                x.Id != id &&
-                x.Name.Equals(app.Name, StringComparison.OrdinalIgnoreCase)))
-            {
-                ModelState.AddModelError(
-                    "Name",
-                    "An app with this name already exists."
-                );
-            }
-
-            if (!ModelState.IsValid)
-            {
-                return View(app);
-            }
-
-            existingApp.Name = app.Name;
-            existingApp.ReturnUrl = app.ReturnUrl;
-
-            return RedirectToAction(nameof(Index));
-        }
-
-        // GET: /Apps/Delete/1
-        public IActionResult Delete(int id)
-        {
-            var app = Apps.FirstOrDefault(x => x.Id == id);
-
-            if (app == null)
-            {
-                return NotFound();
-            }
-
-            return View(app);
-        }
-
-        // POST: /Apps/Delete/1
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public IActionResult DeleteConfirmed(int id)
-        {
-            var app = Apps.FirstOrDefault(x => x.Id == id);
-
-            if (app == null)
-            {
-                return NotFound();
-            }
-
-            Apps.Remove(app);
-
-            return RedirectToAction(nameof(Index));
-        }
-
-        // POST: /Apps/Toggle
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public IActionResult Toggle(int id)
-        {
-            var app = Apps.FirstOrDefault(x => x.Id == id);
-
-            if (app == null)
-            {
-                return NotFound();
-            }
-
-            app.IsEnabled = !app.IsEnabled;
-
-            return RedirectToAction(nameof(Index));
+            ModelState.AddModelError(nameof(model.ReturnUrl), "Return URL must be an absolute HTTP or HTTPS URL.");
         }
     }
 }

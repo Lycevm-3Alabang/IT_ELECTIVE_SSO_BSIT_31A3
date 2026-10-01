@@ -11,7 +11,7 @@ using Models;
 namespace Gateway.Controllers;
 
 [Authorize(Roles = SeedData.AdminRole)]
-[Route("Admin/Users")]
+[NonController]
 public class UsersController : Controller
 {
     private const int MaxPageSize = 100;

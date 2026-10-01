@@ -1,4 +1,4 @@
-﻿namespace Models;
+namespace Models;
 
 public class TenantApp
 {
@@ -19,6 +19,8 @@ public class TenantApp
     /// the return URL validator.
     /// </summary>
     public bool IsEnabled { get; set; } = true;
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public ICollection<Group> Groups { get; set; } = new List<Group>();
 }
