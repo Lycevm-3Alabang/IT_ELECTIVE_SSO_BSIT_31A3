@@ -1,4 +1,8 @@
-﻿<!DOCTYPE html>
+﻿@{
+    var isLoginPage = ViewData["IsLoginPage"] as bool? ?? false;
+}
+
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
@@ -16,96 +20,95 @@
           asp-append-version="true" />
 
     <link rel="stylesheet"
+          href="~/css/login.css"
+          asp-append-version="true" />
+
+    <link rel="stylesheet"
           href="~/Gateway.styles.css"
           asp-append-version="true" />
 </head>
 
 <body>
 
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
+    @if (!isLoginPage)
+    {
+        <header>
+            <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
 
-            <div class="container-fluid">
+                <div class="container-fluid">
 
-                <!-- Website Name -->
-                <a class="navbar-brand"
-                   asp-area=""
-                   asp-controller="Home"
-                   asp-action="Index">
-                    Gateway
-                </a>
+                    <a class="navbar-brand"
+                       asp-area=""
+                       asp-controller="Home"
+                       asp-action="Index">
+                        Gateway
+                    </a>
 
-                <!-- Mobile Menu Button -->
-                <button class="navbar-toggler"
-                        type="button"
-                        data-bs-toggle="collapse"
-                        data-bs-target=".navbar-collapse"
-                        aria-controls="navbarSupportedContent"
-                        aria-expanded="false"
-                        aria-label="Toggle navigation">
+                    <button class="navbar-toggler"
+                            type="button"
+                            data-bs-toggle="collapse"
+                            data-bs-target=".navbar-collapse"
+                            aria-controls="navbarSupportedContent"
+                            aria-expanded="false"
+                            aria-label="Toggle navigation">
 
-                    <span class="navbar-toggler-icon"></span>
+                        <span class="navbar-toggler-icon"></span>
 
-                </button>
+                    </button>
 
-                <!-- Navigation Menu -->
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
+                    <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
 
-                    <ul class="navbar-nav flex-grow-1">
+                        <ul class="navbar-nav flex-grow-1">
 
-                        <!-- Home -->
-                        <li class="nav-item">
+                            <li class="nav-item">
 
-                            <a class="nav-link text-dark"
-                               asp-area=""
-                               asp-controller="Home"
-                               asp-action="Index">
+                                <a class="nav-link text-dark"
+                                   asp-area=""
+                                   asp-controller="Home"
+                                   asp-action="Index">
 
-                                Home
+                                    Home
 
-                            </a>
+                                </a>
 
-                        </li>
+                            </li>
 
-                        <!-- External Apps -->
-                        <li class="nav-item">
+                            <li class="nav-item">
 
-                            <a class="nav-link text-dark"
-                               asp-area=""
-                               asp-controller="Apps"
-                               asp-action="Index">
+                                <a class="nav-link text-dark"
+                                   asp-area=""
+                                   asp-controller="Apps"
+                                   asp-action="Index">
 
-                                External Apps
+                                    External Apps
 
-                            </a>
+                                </a>
 
-                        </li>
+                            </li>
 
-                        <!-- Privacy -->
-                        <li class="nav-item">
+                            <li class="nav-item">
 
-                            <a class="nav-link text-dark"
-                               asp-area=""
-                               asp-controller="Home"
-                               asp-action="Privacy">
+                                <a class="nav-link text-dark"
+                                   asp-area=""
+                                   asp-controller="Home"
+                                   asp-action="Privacy">
 
-                                Privacy
+                                    Privacy
 
-                            </a>
+                                </a>
 
-                        </li>
+                            </li>
 
-                    </ul>
+                        </ul>
+
+                    </div>
 
                 </div>
 
-            </div>
+            </nav>
+        </header>
+    }
 
-        </nav>
-    </header>
-
-
-    <!-- Main Page Content -->
     <div class="container">
 
         <main role="main" class="pb-3">
@@ -116,28 +119,27 @@
 
     </div>
 
+    @if (!isLoginPage)
+    {
+        <footer class="border-top footer text-muted">
 
-    <!-- Footer -->
-    <footer class="border-top footer text-muted">
+            <div class="container">
 
-        <div class="container">
+                &copy; 2026 - Gateway -
 
-            &copy; 2026 - Gateway -
+                <a asp-area=""
+                   asp-controller="Home"
+                   asp-action="Privacy">
 
-            <a asp-area=""
-               asp-controller="Home"
-               asp-action="Privacy">
+                    Privacy
 
-                Privacy
+                </a>
 
-            </a>
+            </div>
 
-        </div>
+        </footer>
+    }
 
-    </footer>
-
-
-    <!-- JavaScript -->
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
 
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
