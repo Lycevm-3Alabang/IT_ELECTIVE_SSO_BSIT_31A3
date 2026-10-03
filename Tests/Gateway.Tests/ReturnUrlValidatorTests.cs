@@ -2,6 +2,7 @@ using Data;
 using Gateway.Controllers;
 using Gateway.Models;
 using Gateway.Services;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;

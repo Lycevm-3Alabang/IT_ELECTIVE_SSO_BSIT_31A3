@@ -75,8 +75,21 @@ public class TenantAppsController : Controller
             return View("~/Views/Apps/Edit.cshtml", model);
         }
 
+        var oldName = entity.Name;
         entity.Name = model.Name.Trim();
         entity.ReturnUrl = model.ReturnUrl.Trim();
+
+        // Group names are stored as [AppName]-[GroupName], so a renamed app
+        // needs its groups' prefixes updated to match.
+        if (!string.Equals(oldName, entity.Name, StringComparison.Ordinal))
+        {
+            var groups = await _db.Groups.Where(g => g.TenantAppId == entity.Id).ToListAsync();
+            foreach (var group in groups)
+            {
+                group.Name = GroupRules.ReplacePrefix(oldName, entity.Name, group.Name);
+            }
+        }
+
         await _db.SaveChangesAsync();
         return RedirectToAction(nameof(Index));
     }
