@@ -112,11 +112,8 @@ public class UsersController : AdminBaseController
         var user = await _userManager.FindByIdAsync(id);
         if (user is null) return NotFound();
 
-        var groups = await _db.UserGroups
-            .Where(ug => ug.UserId == id)
-            .Include(ug => ug.Group)
-            .Select(ug => ug.Group.Name)
-            .ToListAsync();
+        var groups = await _db.GetUserGroupsAsync(id);
+        var availableGroups = await _db.GetAvailableGroupsAsync(id);
 
         var recentActivity = await _db.AuditLogs.AsNoTracking()
             .Where(x => x.UserId == id)
@@ -139,6 +136,7 @@ public class UsersController : AdminBaseController
             CreatedAt = user.CreatedAt,
             LastLoginAt = user.LastLoginAt,
             Groups = groups,
+            AvailableGroups = availableGroups,
             RecentActivity = recentActivity
         });
     }
