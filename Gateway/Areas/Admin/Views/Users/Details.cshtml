@@ -18,6 +18,14 @@
     </div>
 }
 
+@if (TempData["ErrorMessage"] is string errorMessage)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @errorMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
 <div id="userAlerts"></div>
 
 <div class="card shadow-sm" style="max-width: 640px;">
@@ -39,7 +47,7 @@
                 {
                     foreach (var group in Model.Groups)
                     {
-                        <span class="badge bg-light text-dark border me-1">@group</span>
+                        <span class="badge bg-light text-dark border me-1">@group.GroupName</span>
                     }
                 }
                 else
@@ -83,6 +91,62 @@
     </div>
 </div>
 
+<div class="card shadow-sm mt-3" style="max-width: 640px;" id="groupAssignments">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span>Group assignments</span>
+        <small class="text-muted">0 = highest power; higher = less power</small>
+    </div>
+    <ul id="userGroupList" class="list-group list-group-flush">
+        <li class="list-group-item text-muted small js-no-groups @(Model.Groups.Any() ? "d-none" : "")">No groups assigned</li>
+        @foreach (var group in Model.Groups)
+        {
+            <li class="list-group-item d-flex justify-content-between align-items-center" data-group-id="@group.GroupId">
+                <div>
+                    <strong>@group.GroupName</strong>
+                    <div class="small text-muted">
+                        App: @group.AppName &middot;
+                        <span class="badge @(group.PowerLevel == 0 ? "bg-danger" : "bg-secondary")">Level @group.PowerLevel</span>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-danger js-unassign-group"
+                        data-unassign-url="@Url.Action("Unassign", "UserGroups", new { area = "Admin", userId = Model.Id, groupId = group.GroupId })"
+                        data-group-name="@group.GroupName">
+                    <i class="bi bi-x-lg"></i> Remove
+                </button>
+            </li>
+        }
+    </ul>
+    <div class="card-footer">
+        @if (!Model.AvailableGroups.Any())
+        {
+            <span class="text-muted small">
+                @(Model.Groups.Any() ? "This user is in every available group." : "No groups exist yet.")
+                <a asp-area="Admin" asp-controller="Groups" asp-action="Index">Manage groups</a>
+            </span>
+        }
+        else
+        {
+            <form asp-area="Admin" asp-controller="UserGroups" asp-action="Assign" asp-route-userId="@Model.Id" method="post" class="d-flex gap-2">
+                <select name="groupId" class="form-select" aria-label="Group to assign" required>
+                    <option value="">Select a group to assign&hellip;</option>
+                    @foreach (var appGroups in Model.AvailableGroups.GroupBy(g => g.AppName))
+                    {
+                        <optgroup label="@appGroups.Key">
+                            @foreach (var option in appGroups)
+                            {
+                                <option value="@option.GroupId">@option.GroupName (level @option.PowerLevel)</option>
+                            }
+                        </optgroup>
+                    }
+                </select>
+                <button type="submit" class="btn btn-primary text-nowrap">
+                    <i class="bi bi-plus-lg me-1"></i> Assign
+                </button>
+            </form>
+        }
+    </div>
+</div>
+
 <div class="card shadow-sm mt-3" style="max-width: 640px;">
     <div class="card-header">Recent Activity</div>
     <ul id="auditLogList" class="list-group list-group-flush">
@@ -109,4 +173,5 @@
 @section Scripts {
     <form id="antiForgeryForm">@Html.AntiForgeryToken()</form>
     <script src="~/js/admin-users.js"></script>
+    <script src="~/js/admin-user-groups.js"></script>
 }
