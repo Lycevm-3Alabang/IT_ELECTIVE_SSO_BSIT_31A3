@@ -5,7 +5,7 @@ namespace Gateway.Services;
 
 public interface IAuditService
 {
-    Task LogLogin(string? userId, string email, bool successful, string? reason = null, string? ipAddress = null, DateTime? timestamp = null);
+    Task LogLogin(string? userId, string email, bool successful, string? reason = null, string? ipAddress = null, DateTime? timestamp = null, int? tenantAppId = null);
     Task LogAction(string action, string? details = null, string? userId = null, string? ipAddress = null, DateTime? timestamp = null);
 }
 
@@ -14,7 +14,7 @@ public sealed class AuditService : IAuditService
     private readonly SsoDbContext _db;
     public AuditService(SsoDbContext db) => _db = db;
 
-    public async Task LogLogin(string? userId, string email, bool successful, string? reason = null, string? ipAddress = null, DateTime? timestamp = null)
+    public async Task LogLogin(string? userId, string email, bool successful, string? reason = null, string? ipAddress = null, DateTime? timestamp = null, int? tenantAppId = null)
     {
         _db.AuditLogs.Add(new AuditLog
         {
@@ -24,6 +24,7 @@ public sealed class AuditService : IAuditService
             Reason = successful ? null : (reason ?? "Unknown"),
             UserId = userId,
             IpAddress = ipAddress,
+            TenantAppId = tenantAppId,
             Timestamp = timestamp ?? DateTime.UtcNow
         });
         await _db.SaveChangesAsync();
