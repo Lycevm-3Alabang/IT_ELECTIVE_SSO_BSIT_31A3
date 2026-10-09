@@ -17,7 +17,10 @@ builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("JwtSettings"));
 builder.Services.Configure<LoginRateLimitSettings>(builder.Configuration.GetSection("LoginRateLimit"));
 builder.Services.AddSingleton(TimeProvider.System);
-builder.Services.AddSingleton<IExternalAppRegistry, InMemoryExternalAppRegistry>();
+
+// The registered apps live in the database (Admin > Apps). The login gateway and the CORS policy
+// read the same list, so enabling, disabling or editing an app takes effect immediately.
+builder.Services.AddSingleton<IExternalAppRegistry, DbExternalAppRegistry>();
 builder.Services.AddSingleton<ILoginRateLimiter, LoginRateLimiter>();
 builder.Services.AddSingleton<IJwtTokenService, JwtTokenService>();
 
@@ -43,6 +46,13 @@ builder.Services
 // Use the active-aware SignInManager so inactive accounts cannot log in.
 builder.Services.AddScoped<SignInManager<ApplicationUser>, ActiveUserSignInManager>();
 
+// Admins sign in to the gateway itself through /Account/Login (cookie).
+builder.Services.ConfigureApplicationCookie(options =>
+{
+    options.LoginPath = "/Account/Login";
+    options.AccessDeniedPath = "/Account/AccessDenied";
+});
+
 var app = builder.Build();
 
 // Fail at startup, not on the first login, if the signing key is too short for HS256.
@@ -59,6 +69,7 @@ using (var scope = app.Services.CreateScope())
 }
 
 await SeedData.SeedAdminAsync(app.Services);
+await SeedData.SeedSampleAppAsync(app.Services);
 
 if (!app.Environment.IsDevelopment())
 {
@@ -75,10 +86,15 @@ app.UseAuthorization();
 
 app.MapStaticAssets();
 
+// /Admin/Dashboard, /Admin/Groups, /Admin/TenantApps ...
+app.MapControllerRoute(
+    name: "areas",
+    pattern: "{area:exists}/{controller=Dashboard}/{action=Index}/{id?}")
+    .WithStaticAssets();
+
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}")
     .WithStaticAssets();
-
 
 app.Run();

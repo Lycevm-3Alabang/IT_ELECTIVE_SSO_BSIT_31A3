@@ -1,5 +1,8 @@
+using Microsoft.Extensions.DependencyInjection;
+using Data;
 using Gateway.Models;
 using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.EntityFrameworkCore;
 
 namespace Gateway.Services;
 
@@ -24,9 +27,9 @@ public interface IExternalAppRegistry
     bool IsOriginApproved(string? origin);
 }
 
-public sealed class InMemoryExternalAppRegistry : IExternalAppRegistry
+public class InMemoryExternalAppRegistry : IExternalAppRegistry
 {
-    public List<ExternalApp> Apps { get; } = new()
+    public virtual List<ExternalApp> Apps { get; } = new()
     {
         new ExternalApp
         {
@@ -104,4 +107,39 @@ public sealed class InMemoryExternalAppRegistry : IExternalAppRegistry
 
     private static bool SamePath(Uri a, Uri b) =>
         string.Equals(a.AbsolutePath.TrimEnd('/'), b.AbsolutePath.TrimEnd('/'), StringComparison.Ordinal);
+}
+
+/// <summary>
+/// The registry the running site uses. Reads the apps that admins manage under Admin > Apps
+/// (the TenantApps table), so the login gateway and the admin screens always agree.
+/// Read-only: add, edit, enable and remove apps through the admin pages.
+/// </summary>
+public sealed class DbExternalAppRegistry : InMemoryExternalAppRegistry
+{
+    private readonly IServiceScopeFactory _scopes;
+
+    public DbExternalAppRegistry(IServiceScopeFactory scopes)
+    {
+        _scopes = scopes;
+    }
+
+    public override List<ExternalApp> Apps
+    {
+        get
+        {
+            using var scope = _scopes.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<SsoDbContext>();
+
+            return db.TenantApps.AsNoTracking()
+                .OrderBy(a => a.Id)
+                .Select(a => new ExternalApp
+                {
+                    Id = a.Id,
+                    Name = a.Name,
+                    ReturnUrl = a.ReturnUrl,
+                    IsEnabled = a.IsEnabled
+                })
+                .ToList();
+        }
+    }
 }
