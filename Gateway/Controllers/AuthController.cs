@@ -151,9 +151,9 @@ public class AuthController : Controller
             : (await _db.UserGroups.AsNoTracking()
                     .Where(ug => ug.UserId == user.Id && ug.Group.TenantAppId == tenantApp.Id)
                     .OrderBy(ug => ug.Group.Name)
-                    .Select(ug => new { ug.Group.Name, ug.Group.Level })
+                    .Select(ug => new { ug.Group.Name, ug.Group.PowerLevel })
                     .ToListAsync())
-                .Select(g => (g.Name, g.Level))
+                .Select(g => (Name: g.Name, Level: g.PowerLevel))
                 .ToList();
 
         user.LastLoginAt = DateTime.UtcNow;

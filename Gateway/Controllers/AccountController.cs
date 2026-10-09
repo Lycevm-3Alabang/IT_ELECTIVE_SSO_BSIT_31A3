@@ -47,7 +47,13 @@ public class AccountController : Controller
                 await _userManager.UpdateAsync(user);
                 await _auditService.LogLogin(user.Id, normalizedEmail, true, ipAddress: ip);
             }
-            return LocalRedirect(Url.IsLocalUrl(returnUrl) ? returnUrl! : "/");
+            if (Url.IsLocalUrl(returnUrl))
+            {
+                return LocalRedirect(returnUrl!);
+            }
+
+            var isAdmin = user is not null && await _userManager.IsInRoleAsync(user, "Admin");
+            return LocalRedirect(isAdmin ? "/Admin" : "/");
         }
 
         var reason = result.IsLockedOut ? "Locked out" : result.IsNotAllowed ? "Not allowed" : "Invalid email or password";
@@ -56,6 +62,9 @@ public class AccountController : Controller
         ViewData["ReturnUrl"] = returnUrl;
         return View();
     }
+
+    [HttpGet("AccessDenied")]
+    public IActionResult AccessDenied() => View();
 
     [HttpPost("Logout")]
     [ValidateAntiForgeryToken]
