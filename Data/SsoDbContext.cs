@@ -43,8 +43,14 @@ public class SsoDbContext : IdentityDbContext<ApplicationUser>
                 .HasColumnName("Name")
                 .HasMaxLength(100);
 
+            t.Property(a => a.ReturnUrl)
+                .IsRequired()
+                .HasMaxLength(500);
+
             t.HasIndex(a => a.Name)
                 .IsUnique();
+
+            t.HasIndex(a => a.ReturnUrl);
         });
 
         builder.Entity<Group>(g =>
@@ -55,6 +61,10 @@ public class SsoDbContext : IdentityDbContext<ApplicationUser>
                 .IsRequired()
                 .HasColumnName("Name")
                 .HasMaxLength(100);
+
+            // Group names are unique within an app (names are stored as "[AppName]-[GroupName]").
+            g.HasIndex(x => new { x.TenantAppId, x.Name })
+                .IsUnique();
 
             g.HasOne(x => x.TenantApp)
                 .WithMany(t => t.Groups)

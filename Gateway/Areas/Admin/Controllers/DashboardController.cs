@@ -1,20 +1,27 @@
-﻿using Gateway.Areas.Admin.Models;
+using Data;
+using Gateway.Areas.Admin.Models;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace Gateway.Areas.Admin.Controllers
 {
     public class DashboardController : AdminBaseController
     {
-        public IActionResult Index()
+        private readonly SsoDbContext _db;
+
+        public DashboardController(SsoDbContext db)
         {
-            // TODO: replace with real EF Core queries once
-            // Issue 4 (Users) and Issue 8 (TenantApps) are merged.
+            _db = db;
+        }
+
+        public async Task<IActionResult> Index()
+        {
             var model = new DashboardViewModel
             {
-                TotalUsers = 0,
-                ActiveUsers = 0,
-                TotalApps = 0,
-                TotalGroups = 0
+                TotalUsers = await _db.Users.CountAsync(),
+                ActiveUsers = await _db.Users.CountAsync(u => u.IsActive),
+                TotalApps = await _db.TenantApps.CountAsync(),
+                TotalGroups = await _db.Groups.CountAsync()
             };
 
             return View(model);

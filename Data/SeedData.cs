@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -18,6 +19,10 @@ namespace Data;
 public static class SeedData
 {
     public const string AdminRole = "Admin";
+
+    private const string SampleAppName = "Sample App";
+    private const string DefaultSampleReturnUrl = "https://localhost:7096/DemoApp";
+    private const string LegacySampleReturnUrl = "https://example.com/callback";
 
     /// <summary>
     /// Entry point called from Program.cs on startup. Resolves its own
@@ -47,6 +52,50 @@ public static class SeedData
 
         await EnsureAdminRoleAsync(roleManager, logger);
         await EnsureAdminUserAsync(userManager, email, password, logger);
+    }
+
+    /// <summary>
+    /// Registers one sample client app the first time the database is created, so the
+    /// login flow can be tried straight away. Does nothing once any app exists.
+    /// Replace or remove it under Admin > Apps.
+    /// </summary>
+    public static async Task SeedSampleAppAsync(IServiceProvider services)
+    {
+        using var scope = services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<SsoDbContext>();
+        var configuration = scope.ServiceProvider.GetService<IConfiguration>();
+
+        // Points at the demo app the gateway hosts itself (GET /DemoApp). Override with "SampleApp:ReturnUrl"
+        // in appsettings.json if the gateway runs on a different address.
+        var returnUrl = configuration?["SampleApp:ReturnUrl"];
+        if (string.IsNullOrWhiteSpace(returnUrl))
+        {
+            returnUrl = DefaultSampleReturnUrl;
+        }
+
+        // Databases created by an earlier version registered a placeholder address that goes nowhere.
+        var legacy = await db.TenantApps
+            .FirstOrDefaultAsync(a => a.Name == SampleAppName && a.ReturnUrl == LegacySampleReturnUrl);
+        if (legacy is not null)
+        {
+            legacy.ReturnUrl = returnUrl;
+            await db.SaveChangesAsync();
+            return;
+        }
+
+        if (await db.TenantApps.AnyAsync())
+        {
+            return;
+        }
+
+        db.TenantApps.Add(new TenantApp
+        {
+            Name = SampleAppName,
+            ReturnUrl = returnUrl,
+            IsEnabled = true,
+            CreatedAt = DateTime.UtcNow
+        });
+        await db.SaveChangesAsync();
     }
 
     private static async Task EnsureAdminRoleAsync(RoleManager<IdentityRole> roleManager, ILogger logger)
