@@ -1,0 +1,58 @@
+@model DemoAppViewModel
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@Model.AppName</title>
+    <style>
+        :root { --yellow: #ffd23f; --blue: #1d4ed8; --blue-dark: #12308f; }
+        * { box-sizing: border-box; }
+        body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 24px;
+               font-family: "Segoe UI", Arial, sans-serif; background: linear-gradient(135deg, #fffcee, #fff0a8); color: #1b2437; }
+        .card { width: 100%; max-width: 520px; padding: 40px; text-align: center; background: #fff;
+                border-radius: 20px; border-top: 8px solid var(--blue); box-shadow: 0 16px 40px rgba(18, 48, 143, .2); }
+        .badge { display: inline-block; padding: 4px 14px; border-radius: 999px; background: var(--yellow);
+                 color: var(--blue-dark); font-weight: 700; font-size: 13px; letter-spacing: .05em; }
+        h1 { margin: 18px 0 8px; font-size: 44px; color: var(--blue-dark); }
+        p { color: #4a5568; }
+        .who { margin-top: 20px; padding: 14px; border-radius: 12px; background: #e8eefc; color: var(--blue-dark); }
+        .error { margin-top: 20px; padding: 14px; border-radius: 12px; background: #fdecec; color: #a00000; }
+        .button { display: inline-block; margin-top: 22px; padding: 12px 28px; border-radius: 999px; background: var(--blue);
+                  color: #fff; text-decoration: none; font-weight: 700; }
+        .button:hover { background: var(--blue-dark); }
+    </style>
+</head>
+<body>
+    <main class="card">
+        <span class="badge">@Model.AppName</span>
+        <h1>Hello!</h1>
+
+        @if (Model.IsSignedIn)
+        {
+            <p>You are signed in through the SSO gateway.</p>
+            <div class="who">
+                <strong>Hello, @Model.Email</strong>
+                @if (Model.Groups.Count > 0)
+                {
+                    <div>Groups: @string.Join(", ", Model.Groups)</div>
+                }
+            </div>
+        }
+        else
+        {
+            <p>This is a client app registered with the SSO gateway.</p>
+
+            @if (!string.IsNullOrEmpty(Model.Error))
+            {
+                <div class="error" role="alert">@Model.Error</div>
+            }
+
+            <a class="button" href="@Model.SignInUrl">Sign in with SSO</a>
+        }
+    </main>
+</body>
+</html>

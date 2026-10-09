@@ -1,8 +1,45 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+@{
+    ViewData["Title"] = "Welcome";
+    ViewData["IsHomePage"] = true;
+    var isAdmin = User.Identity?.IsAuthenticated == true && User.IsInRole("Admin");
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
-</div>
+<section class="hero">
+    <span class="hero-badge">Tenant App - 31E3</span>
+    <h1>Welcome to the <span>SSO Gateway</span></h1>
+    <p class="lead">
+        One secure sign-in for every connected app. Register apps, manage users and groups,
+        and review every login from a single admin console.
+    </p>
+
+    <div class="hero-actions">
+        @if (isAdmin)
+        {
+            <a class="btn-hero" asp-area="Admin" asp-controller="Dashboard" asp-action="Index">Open Dashboard</a>
+            <a class="btn-hero btn-hero--ghost" asp-area="Admin" asp-controller="TenantApps" asp-action="Index">Manage Apps</a>
+        }
+        else
+        {
+            <a class="btn-hero" asp-area="" asp-controller="Account" asp-action="Login">Admin Sign In</a>
+            <a class="btn-hero btn-hero--ghost" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+        }
+    </div>
+</section>
+
+<section class="features" aria-label="What the gateway does">
+    <article class="feature">
+        <div class="feature-number">1</div>
+        <h3>Single sign-on</h3>
+        <p>Users sign in once at the gateway and are sent back to the app they came from with a signed token.</p>
+    </article>
+    <article class="feature">
+        <div class="feature-number">2</div>
+        <h3>Apps, groups &amp; levels</h3>
+        <p>Register tenant apps, then give users app-scoped groups with power levels that travel in the token.</p>
+    </article>
+    <article class="feature">
+        <div class="feature-number">3</div>
+        <h3>Full audit trail</h3>
+        <p>Logins, blocked redirects and admin changes are all recorded so nothing happens unnoticed.</p>
+    </article>
+</section>

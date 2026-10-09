@@ -1,33 +1,78 @@
 @model LoginViewModel
 @{
-    ViewData["Title"] = "Sign in";
+    ViewData["Title"] = "Tenant App - 31E3";
+    ViewData["IsLoginPage"] = true;
+
+    var errors = ViewData.ModelState.Values
+        .SelectMany(v => v.Errors)
+        .Select(e => e.ErrorMessage)
+        .Where(m => !string.IsNullOrWhiteSpace(m))
+        .Distinct()
+        .ToList();
 }
-<div class="row justify-content-center">
-    <div class="col-md-5">
-        <h1 class="mb-1">Sign in</h1>
+
+<nav class="login-navbar" aria-label="Main navigation">
+    <div class="login-brand">Tenant App - 31E3</div>
+
+    <div class="login-nav-links">
+        <a asp-area="" asp-controller="Home" asp-action="Index">Home</a>
+        <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+    </div>
+</nav>
+
+<main class="login-container">
+
+    <section class="login-card" aria-labelledby="login-title">
+
+        <header class="login-header">
+            <h1 id="login-title">Tenant App - 31E3</h1>
+            <p>Single Sign-On Gateway</p>
+        </header>
+
         @if (!string.IsNullOrWhiteSpace(Model.AppName))
         {
-            <p class="text-muted mb-4">to continue to <strong>@Model.AppName</strong></p>
+            <div class="app-name" aria-label="Application requesting login">
+                Sign in to <strong>@Model.AppName</strong>
+            </div>
         }
 
-        <form asp-controller="Auth" asp-action="Login" method="post" novalidate>
+        @if (errors.Count > 0)
+        {
+            <div id="login-error" class="login-error" role="alert" aria-live="assertive">
+                @foreach (var message in errors)
+                {
+                    <p>@message</p>
+                }
+            </div>
+        }
+
+        <form asp-controller="Auth" asp-action="Login" method="post" aria-label="Login form" novalidate>
+
             <input asp-for="ReturnUrl" type="hidden" />
 
-            <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
-
-            <div class="mb-3">
-                <label asp-for="Email" class="form-label"></label>
-                <input asp-for="Email" class="form-control" autocomplete="username" autofocus />
-                <span asp-validation-for="Email" class="text-danger"></span>
+            <div class="form-group">
+                <label asp-for="Email">Email</label>
+                <input asp-for="Email"
+                       type="email"
+                       autocomplete="username"
+                       aria-required="true"
+                       aria-describedby="login-error"
+                       autofocus />
             </div>
 
-            <div class="mb-3">
-                <label asp-for="Password" class="form-label"></label>
-                <input asp-for="Password" class="form-control" autocomplete="current-password" />
-                <span asp-validation-for="Password" class="text-danger"></span>
+            <div class="form-group">
+                <label asp-for="Password">Password</label>
+                <input asp-for="Password"
+                       type="password"
+                       autocomplete="current-password"
+                       aria-required="true"
+                       aria-describedby="login-error" />
             </div>
 
-            <button type="submit" class="btn btn-primary w-100">Sign in</button>
+            <button type="submit" class="login-button">Sign In</button>
+
         </form>
-    </div>
-</div>
+
+    </section>
+
+</main>
