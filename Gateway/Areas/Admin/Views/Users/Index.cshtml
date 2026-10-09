@@ -1,0 +1,110 @@
+﻿@model Gateway.Areas.Admin.Models.Users.UserListViewModel
+@{
+    ViewData["Title"] = "Users";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0">Users</h2>
+    <a asp-action="Create" class="btn btn-primary">
+        <i class="bi bi-person-plus me-1"></i> Create User
+    </a>
+</div>
+
+@if (TempData["StatusMessage"] is string statusMessage)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @statusMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<form asp-action="Index" method="get" class="row g-2 mb-3">
+    <div class="col-sm-6 col-md-4">
+        <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-search"></i></span>
+            <input type="text" name="search" value="@Model.SearchTerm" class="form-control"
+                   placeholder="Search by email..." aria-label="Search by email" />
+            @if (!string.IsNullOrWhiteSpace(Model.SearchTerm))
+            {
+                <a asp-action="Index" class="btn btn-outline-secondary">Clear</a>
+            }
+        </div>
+    </div>
+    <div class="col-auto">
+        <button type="submit" class="btn btn-outline-primary">Search</button>
+    </div>
+</form>
+
+<div class="table-responsive">
+    <table class="table table-hover align-middle">
+        <thead>
+            <tr>
+                <th>Email</th>
+                <th>Status</th>
+                <th>Created</th>
+                <th class="text-end">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (!Model.Users.Any())
+            {
+                <tr>
+                    <td colspan="4" class="text-center text-muted py-4">
+                        @if (!string.IsNullOrWhiteSpace(Model.SearchTerm))
+                        {
+                            <span>No users match "@Model.SearchTerm".</span>
+                        }
+                        else
+                        {
+                            <span>No users yet.</span>
+                        }
+                    </td>
+                </tr>
+            }
+            else
+            {
+                foreach (var user in Model.Users)
+                {
+                    <tr data-user-row="@user.Id">
+                        <td>
+                            <a asp-action="Details" asp-route-id="@user.Id">@user.Email</a>
+                        </td>
+                        <td>
+                            <span class="badge @(user.IsActive ? "bg-success" : "bg-secondary")" data-status-badge>
+                                @(user.IsActive ? "Active" : "Inactive")
+                            </span>
+                        </td>
+                        <td>@user.CreatedAt.ToLocalTime().ToString("MMM d, yyyy")</td>
+                        <td class="text-end">
+                            <div class="d-flex justify-content-end align-items-center gap-3">
+                                <div class="form-check form-switch mb-0" title="Toggle active status">
+                                    <input type="checkbox" class="form-check-input js-toggle-active"
+                                           role="switch"
+                                           data-user-id="@user.Id"
+                                           data-toggle-url="@Url.Action("ToggleActive", new { id = user.Id })"
+                                    @(user.IsActive ? "checked" : "") />
+                                </div>
+                                <a asp-action="Details" asp-route-id="@user.Id" class="btn btn-sm btn-outline-secondary">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <button type="button" class="btn btn-sm btn-outline-danger js-delete-trigger"
+                                        data-bs-toggle="modal" data-bs-target="#deleteUserModal"
+                                        data-delete-url="@Url.Action("Delete", new { id = user.Id })"
+                                        data-user-email="@user.Email">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            }
+        </tbody>
+    </table>
+</div>
+
+@await Html.PartialAsync("_DeleteConfirmModal")
+
+@section Scripts {
+    <form id="antiForgeryForm">@Html.AntiForgeryToken()</form>
+    <script src="~/js/admin-users.js"></script>
+}
