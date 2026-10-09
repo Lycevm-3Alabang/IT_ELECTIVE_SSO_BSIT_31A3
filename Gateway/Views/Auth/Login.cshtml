@@ -1,9 +1,8 @@
-﻿@model LoginViewModel
+@model LoginViewModel
 @{
-    ViewData["Title"] = "IT ELECTIVE - SSO";
+    ViewData["Title"] = "Tenant App - 31E3";
     ViewData["IsLoginPage"] = true;
 
-    // Errors come from AuthController (invalid credentials, rate limit, validation).
     var errors = ViewData.ModelState.Values
         .SelectMany(v => v.Errors)
         .Select(e => e.ErrorMessage)
@@ -12,122 +11,65 @@
         .ToList();
 }
 
-<nav class="login-navbar"
-     aria-label="Main navigation">
-
-    <div class="login-brand">
-        IT ELECTIVE - SSO
-    </div>
+<nav class="login-navbar" aria-label="Main navigation">
+    <div class="login-brand">Tenant App - 31E3</div>
 
     <div class="login-nav-links">
-
-        <a href="/">
-            Gateway
-        </a>
-
-        <a href="/">
-            Home
-        </a>
-
-        <a href="/">
-            External Apps
-        </a>
-
-        <a href="/">
-            Privacy
-        </a>
-
+        <a asp-area="" asp-controller="Home" asp-action="Index">Home</a>
+        <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
     </div>
-
 </nav>
 
 <main class="login-container">
 
-    <section class="login-card"
-             aria-labelledby="login-title">
+    <section class="login-card" aria-labelledby="login-title">
 
         <header class="login-header">
-
-            <h1 id="login-title">
-                IT ELECTIVE - SSO
-            </h1>
-
-            <p>
-                Single Sign-On Gateway
-            </p>
-
+            <h1 id="login-title">Tenant App - 31E3</h1>
+            <p>Single Sign-On Gateway</p>
         </header>
 
         @if (!string.IsNullOrWhiteSpace(Model.AppName))
         {
-            <div class="app-name"
-                 aria-label="Application requesting login">
-
+            <div class="app-name" aria-label="Application requesting login">
                 Sign in to <strong>@Model.AppName</strong>
-
             </div>
         }
 
-        <div id="login-error"
-             class="login-error"
-             role="alert"
-             aria-live="assertive"
-             hidden="@(errors.Count == 0 ? "hidden" : null)">
+        @if (errors.Count > 0)
+        {
+            <div id="login-error" class="login-error" role="alert" aria-live="assertive">
+                @foreach (var message in errors)
+                {
+                    <p>@message</p>
+                }
+            </div>
+        }
 
-            @foreach (var message in errors)
-            {
-                <div>@message</div>
-            }
+        <form asp-controller="Auth" asp-action="Login" method="post" aria-label="Login form" novalidate>
 
-        </div>
-
-        <form asp-controller="Auth"
-              asp-action="Login"
-              method="post"
-              novalidate
-              aria-label="Login form">
-
-            <input asp-for="ReturnUrl"
-                   type="hidden" />
+            <input asp-for="ReturnUrl" type="hidden" />
 
             <div class="form-group">
-
-                <label for="email">
-                    Email
-                </label>
-
+                <label asp-for="Email">Email</label>
                 <input asp-for="Email"
                        type="email"
-                       id="email"
                        autocomplete="username"
                        aria-required="true"
                        aria-describedby="login-error"
-                       required />
-
+                       autofocus />
             </div>
 
             <div class="form-group">
-
-                <label for="password">
-                    Password
-                </label>
-
+                <label asp-for="Password">Password</label>
                 <input asp-for="Password"
                        type="password"
-                       id="password"
                        autocomplete="current-password"
                        aria-required="true"
-                       aria-describedby="login-error"
-                       required />
-
+                       aria-describedby="login-error" />
             </div>
 
-            <button type="submit"
-                    class="login-button">
-
-                Sign In
-
-            </button>
+            <button type="submit" class="login-button">Sign In</button>
 
         </form>
 

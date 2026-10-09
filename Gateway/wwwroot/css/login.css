@@ -1,16 +1,17 @@
-﻿* {
-    box-sizing: border-box;
-}
-
-body {
+/* Sign-in pages only. Everything is scoped under .login-page so it can't leak into the admin screens. */
+.login-page {
     margin: 0;
+    margin-bottom: 0;
     min-height: 100vh;
     font-family: Arial, sans-serif;
     background: #f4f6f8;
     color: #222222;
 }
 
-.navbar,
+.login-page * {
+    box-sizing: border-box;
+}
+
 .login-navbar {
     width: 100%;
     background: #ffffff;
@@ -21,29 +22,25 @@ body {
     justify-content: space-between;
 }
 
-.brand,
 .login-brand {
     font-size: 20px;
     font-weight: 700;
 }
 
-.nav-links,
 .login-nav-links {
     display: flex;
     gap: 24px;
 }
 
-    .nav-links a,
-    .login-nav-links a {
-        color: #444444;
-        text-decoration: none;
-        font-size: 15px;
-    }
+.login-nav-links a {
+    color: #444444;
+    text-decoration: none;
+    font-size: 15px;
+}
 
-        .nav-links a:hover,
-        .login-nav-links a:hover {
-            color: #000000;
-        }
+.login-nav-links a:hover {
+    color: #000000;
+}
 
 .login-container {
     min-height: calc(100vh - 73px);
@@ -67,17 +64,17 @@ body {
     margin-bottom: 24px;
 }
 
-    .login-header h1 {
-        margin: 0;
-        font-size: 28px;
-    }
+.login-header h1 {
+    margin: 0;
+    font-size: 28px;
+}
 
-    .login-header p {
-        margin-top: 8px;
-        color: #666666;
-    }
+.login-header p {
+    margin-top: 8px;
+    color: #666666;
+}
 
-.app-name {
+.login-card .app-name {
     margin-bottom: 24px;
     padding: 12px;
     border-radius: 8px;
@@ -86,8 +83,7 @@ body {
     color: #444444;
 }
 
-.error,
-.login-error {
+.login-card .login-error {
     margin-bottom: 18px;
     padding: 12px;
     border-radius: 8px;
@@ -97,17 +93,27 @@ body {
     font-size: 14px;
 }
 
-.form-group {
+.login-card .login-error p {
+    margin: 0;
+}
+
+.login-card .login-error p + p {
+    margin-top: 4px;
+}
+
+.login-card .form-group {
     margin-bottom: 18px;
 }
 
-label {
+.login-card label {
     display: block;
     margin-bottom: 7px;
     font-weight: 600;
 }
 
-input {
+.login-card input[type="email"],
+.login-card input[type="password"],
+.login-card input[type="text"] {
     width: 100%;
     padding: 12px;
     border: 1px solid #cccccc;
@@ -115,10 +121,23 @@ input {
     font-size: 16px;
 }
 
-    input:focus {
-        outline: 3px solid #999999;
-        outline-offset: 2px;
-    }
+.login-card input:focus {
+    outline: 3px solid #999999;
+    outline-offset: 2px;
+}
+
+.login-card .login-remember {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 18px;
+}
+
+.login-card .login-remember label {
+    display: inline;
+    margin: 0;
+    font-weight: 400;
+}
 
 .login-button {
     width: 100%;
@@ -132,11 +151,11 @@ input {
     cursor: pointer;
 }
 
-    .login-button:hover {
-        background: #444444;
-    }
+.login-button:hover {
+    background: #444444;
+}
 
-    .login-button:focus {
-        outline: 3px solid #999999;
-        outline-offset: 2px;
-    }
+.login-button:focus {
+    outline: 3px solid #999999;
+    outline-offset: 2px;
+}

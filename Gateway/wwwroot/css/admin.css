@@ -1,0 +1,260 @@
+/* Admin area: yellow with blue accents. Loaded only by Areas/Admin/Views/Shared/_Layout.cshtml. */
+:root {
+    --gw-yellow: #ffd23f;
+    --gw-yellow-deep: #f5b700;
+    --gw-yellow-soft: #fff8dc;
+    --gw-yellow-pale: #fffcee;
+    --gw-blue: #1d4ed8;
+    --gw-blue-dark: #12308f;
+    --gw-blue-soft: #e8eefc;
+    --gw-ink: #1b2437;
+
+    --bs-primary: var(--gw-blue);
+    --bs-primary-rgb: 29, 78, 216;
+    --bs-link-color: var(--gw-blue);
+    --bs-link-color-rgb: 29, 78, 216;
+    --bs-link-hover-color: var(--gw-blue-dark);
+}
+
+body {
+    min-height: 100vh;
+    background: var(--gw-yellow-pale);
+    color: var(--gw-ink);
+}
+
+/* ---------- Sidebar ---------- */
+.sidebar {
+    min-height: 100vh;
+    background: linear-gradient(180deg, var(--gw-yellow) 0%, var(--gw-yellow-deep) 100%);
+    border-right: 4px solid var(--gw-blue);
+}
+
+.sidebar-brand {
+    color: var(--gw-blue-dark);
+    font-weight: 800;
+    letter-spacing: .04em;
+    padding-bottom: .75rem;
+    border-bottom: 2px solid rgba(18, 48, 143, .25);
+}
+
+.sidebar .nav-link {
+    color: var(--gw-ink);
+    font-weight: 600;
+    border-radius: 8px;
+    margin-bottom: 2px;
+    transition: background-color .15s, color .15s;
+}
+
+.sidebar .nav-link:hover {
+    color: var(--gw-blue-dark);
+    background-color: rgba(29, 78, 216, .12);
+}
+
+.sidebar .nav-link.active {
+    color: #fff;
+    background-color: var(--gw-blue);
+    box-shadow: 0 3px 8px rgba(29, 78, 216, .35);
+}
+
+.sidebar-divider {
+    border-color: var(--gw-blue-dark);
+    opacity: .3;
+}
+
+.btn-logout {
+    color: var(--gw-blue-dark);
+    border: 2px solid var(--gw-blue);
+    font-weight: 600;
+    background: transparent;
+}
+
+.btn-logout:hover {
+    background: var(--gw-blue);
+    color: #fff;
+}
+
+/* ---------- Page chrome ---------- */
+main h2 {
+    color: var(--gw-blue-dark);
+    font-weight: 800;
+}
+
+.page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: .5rem;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1.5rem;
+    background: var(--gw-yellow);
+    border-left: 8px solid var(--gw-blue);
+    border-radius: 12px;
+    box-shadow: 0 4px 14px rgba(245, 183, 0, .35);
+}
+
+.page-header h2 {
+    margin: 0;
+}
+
+.page-header p {
+    margin: 0;
+    color: var(--gw-blue-dark);
+    opacity: .85;
+}
+
+/* ---------- Dashboard stat cards ---------- */
+.stat-card {
+    border: 0;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 6px 16px rgba(18, 48, 143, .12);
+    transition: transform .15s, box-shadow .15s;
+}
+
+.stat-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 22px rgba(18, 48, 143, .2);
+}
+
+.stat-card .card-body {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.25rem 1.5rem;
+}
+
+.stat-card .stat-label {
+    margin: 0;
+    font-size: .8rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+
+.stat-card .stat-value {
+    margin: 0;
+    font-size: 2.4rem;
+    font-weight: 800;
+    line-height: 1.1;
+}
+
+.stat-card .stat-icon {
+    flex: 0 0 auto;
+    width: 54px;
+    height: 54px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    font-size: 1.5rem;
+}
+
+.stat-card--yellow {
+    background: var(--gw-yellow);
+    color: var(--gw-blue-dark);
+    border-bottom: 5px solid var(--gw-blue);
+}
+
+.stat-card--yellow .stat-icon {
+    background: var(--gw-blue);
+    color: var(--gw-yellow);
+}
+
+.stat-card--blue {
+    background: var(--gw-blue);
+    color: #fff;
+    border-bottom: 5px solid var(--gw-yellow);
+}
+
+.stat-card--blue .stat-value {
+    color: var(--gw-yellow);
+}
+
+.stat-card--blue .stat-icon {
+    background: var(--gw-yellow);
+    color: var(--gw-blue-dark);
+}
+
+.quick-links .card-header {
+    background: var(--gw-blue);
+    color: #fff;
+    font-weight: 700;
+}
+
+.quick-links .btn {
+    font-weight: 600;
+}
+
+/* ---------- Bootstrap components, re-skinned ---------- */
+.card {
+    border-color: rgba(18, 48, 143, .12);
+    border-radius: 12px;
+}
+
+.btn-primary {
+    --bs-btn-bg: var(--gw-blue);
+    --bs-btn-border-color: var(--gw-blue);
+    --bs-btn-hover-bg: var(--gw-blue-dark);
+    --bs-btn-hover-border-color: var(--gw-blue-dark);
+    --bs-btn-active-bg: var(--gw-blue-dark);
+    --bs-btn-active-border-color: var(--gw-blue-dark);
+    --bs-btn-disabled-bg: var(--gw-blue);
+    --bs-btn-disabled-border-color: var(--gw-blue);
+}
+
+.btn-outline-primary {
+    --bs-btn-color: var(--gw-blue);
+    --bs-btn-border-color: var(--gw-blue);
+    --bs-btn-hover-bg: var(--gw-blue);
+    --bs-btn-hover-border-color: var(--gw-blue);
+    --bs-btn-active-bg: var(--gw-blue);
+    --bs-btn-active-border-color: var(--gw-blue);
+}
+
+.btn-warning {
+    --bs-btn-bg: var(--gw-yellow);
+    --bs-btn-border-color: var(--gw-yellow-deep);
+    --bs-btn-color: var(--gw-blue-dark);
+}
+
+.table-dark {
+    --bs-table-bg: var(--gw-blue);
+    --bs-table-border-color: var(--gw-blue-dark);
+    --bs-table-color: #fff;
+}
+
+.table-dark th {
+    border-bottom: 3px solid var(--gw-yellow);
+}
+
+.table-striped > tbody > tr:nth-of-type(odd) > * {
+    --bs-table-bg-type: var(--gw-yellow-soft);
+}
+
+.table-hover > tbody > tr:hover > * {
+    --bs-table-bg-state: var(--gw-blue-soft);
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: var(--gw-blue);
+    box-shadow: 0 0 0 .2rem rgba(29, 78, 216, .2);
+}
+
+.form-check-input:checked {
+    background-color: var(--gw-blue);
+    border-color: var(--gw-blue);
+}
+
+.pagination {
+    --bs-pagination-active-bg: var(--gw-blue);
+    --bs-pagination-active-border-color: var(--gw-blue);
+    --bs-pagination-color: var(--gw-blue);
+}
+
+.modal-header:not(.bg-danger) {
+    background: var(--gw-yellow);
+    color: var(--gw-blue-dark);
+    border-bottom: 3px solid var(--gw-blue);
+}

@@ -1,7 +1,8 @@
-﻿@{
+@{
     var isLoginPage = ViewData["IsLoginPage"] as bool? ?? false;
+    var isHomePage = ViewData["IsHomePage"] as bool? ?? false;
+    var isAdmin = User.Identity?.IsAuthenticated == true && User.IsInRole("Admin");
 }
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -12,40 +13,28 @@
 
     <script type="importmap"></script>
 
-    <link rel="stylesheet"
-          href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
-
-    <link rel="stylesheet"
-          href="~/css/site.css"
-          asp-append-version="true" />
-
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     @if (isLoginPage)
     {
-        <link rel="stylesheet"
-              href="~/css/login.css"
-              asp-append-version="true" />
+        <link rel="stylesheet" href="~/css/login.css" asp-append-version="true" />
     }
-
-    <link rel="stylesheet"
-          href="~/Gateway.styles.css"
-          asp-append-version="true" />
+    @if (isHomePage)
+    {
+        <link rel="stylesheet" href="~/css/home.css" asp-append-version="true" />
+    }
+    <link rel="stylesheet" href="~/Gateway.styles.css" asp-append-version="true" />
 </head>
 
-<body>
+<body class="@(isLoginPage ? "login-page" : isHomePage ? "home-page" : "")">
 
     @if (!isLoginPage)
     {
         <header>
             <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-
                 <div class="container-fluid">
 
-                    <a class="navbar-brand"
-                       asp-area=""
-                       asp-controller="Home"
-                       asp-action="Index">
-                        Gateway
-                    </a>
+                    <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">Gateway</a>
 
                     <button class="navbar-toggler"
                             type="button"
@@ -54,120 +43,70 @@
                             aria-controls="navbarSupportedContent"
                             aria-expanded="false"
                             aria-label="Toggle navigation">
-
                         <span class="navbar-toggler-icon"></span>
-
                     </button>
 
                     <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-
                         <ul class="navbar-nav flex-grow-1">
 
                             <li class="nav-item">
-
-                                <a class="nav-link text-dark"
-                                   asp-area=""
-                                   asp-controller="Home"
-                                   asp-action="Index">
-
-                                    Home
-
-                                </a>
-
+                                <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
                             </li>
 
-                            <li class="nav-item">
-
-                                <a class="nav-link text-dark"
-                                   asp-area=""
-                                   asp-controller="Apps"
-                                   asp-action="Index">
-
-                                    External Apps
-
-                                </a>
-
-                            </li>
-
-                            <li class="nav-item">
-
-                                <a class="nav-link text-dark"
-                                   asp-area=""
-                                   asp-controller="Home"
-                                   asp-action="Privacy">
-
-                                    Privacy
-
-                                </a>
-
-                            </li>
-
-                            @if (User.Identity?.IsAuthenticated == true && User.IsInRole("Admin"))
+                            @if (isAdmin)
                             {
-                                <li class="nav-item"><a class="nav-link text-dark" asp-controller="Users" asp-action="Index">Users</a></li>
-                                <li class="nav-item"><a class="nav-link text-dark" asp-controller="Audit" asp-action="Index">Audit Logs</a></li>
+                                <li class="nav-item"><a class="nav-link text-dark" asp-area="Admin" asp-controller="Dashboard" asp-action="Index">Dashboard</a></li>
+                                <li class="nav-item"><a class="nav-link text-dark" asp-area="" asp-controller="Users" asp-action="Index">Users</a></li>
+                                <li class="nav-item"><a class="nav-link text-dark" asp-area="Admin" asp-controller="TenantApps" asp-action="Index">External Apps</a></li>
+                                <li class="nav-item"><a class="nav-link text-dark" asp-area="Admin" asp-controller="Groups" asp-action="Index">Groups</a></li>
+                                <li class="nav-item"><a class="nav-link text-dark" asp-area="" asp-controller="Audit" asp-action="Index">Audit Logs</a></li>
                             }
+
+                            <li class="nav-item">
+                                <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+                            </li>
+
                             @if (User.Identity?.IsAuthenticated != true)
                             {
-                                <li class="nav-item"><a class="nav-link text-dark" asp-controller="Account" asp-action="Login">Login</a></li>
+                                <li class="nav-item"><a class="nav-link text-dark" asp-area="" asp-controller="Account" asp-action="Login">Admin login</a></li>
                             }
-                            @if (User.Identity?.IsAuthenticated == true)
+                            else
                             {
                                 <li class="nav-item">
-                                    <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
-                                        @Html.AntiForgeryToken()
+                                    <form asp-area="" asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
                                         <button class="nav-link btn btn-link text-dark" type="submit">Logout</button>
                                     </form>
                                 </li>
                             }
 
                         </ul>
-
                     </div>
 
                 </div>
-
             </nav>
         </header>
-    }
 
-    <div class="container">
+        <div class="container">
+            <main role="main" class="pb-3">
+                @RenderBody()
+            </main>
+        </div>
 
-        <main role="main" class="pb-3">
-
-            @RenderBody()
-
-        </main>
-
-    </div>
-
-    @if (!isLoginPage)
-    {
         <footer class="border-top footer text-muted">
-
             <div class="container">
-
                 &copy; 2026 - Gateway -
-
-                <a asp-area=""
-                   asp-controller="Home"
-                   asp-action="Privacy">
-
-                    Privacy
-
-                </a>
-
+                <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
             </div>
-
         </footer>
+    }
+    else
+    {
+        @RenderBody()
     }
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
-
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-
-    <script src="~/js/site.js"
-            asp-append-version="true"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
 
     @await RenderSectionAsync("Scripts", required: false)
 
