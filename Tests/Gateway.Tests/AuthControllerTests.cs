@@ -109,9 +109,9 @@ public class AuthControllerTests
             db.TenantApps.AddRange(sample, other);
             await db.SaveChangesAsync();
 
-            var editors = new Group { Name = "Editors", Level = 2, TenantAppId = sample.Id };
-            var viewers = new Group { Name = "Viewers", Level = 1, TenantAppId = sample.Id };
-            var elsewhere = new Group { Name = "Admins", Level = 9, TenantAppId = other.Id };
+            var editors = new Group { Name = "Editors", PowerLevel = 2, TenantAppId = sample.Id };
+            var viewers = new Group { Name = "Viewers", PowerLevel = 1, TenantAppId = sample.Id };
+            var elsewhere = new Group { Name = "Admins", PowerLevel = 9, TenantAppId = other.Id };
             db.Groups.AddRange(editors, viewers, elsewhere);
             await db.SaveChangesAsync();
 
