@@ -1,0 +1,65 @@
+@model GroupFormViewModel
+@{
+    ViewData["Title"] = "Create Group";
+}
+
+<h2 class="mb-4">Create Group</h2>
+
+@if (!Model.Apps.Any())
+{
+    <div class="alert alert-warning">
+        A group has to belong to an app, and no apps are registered yet.
+        <a asp-area="Admin" asp-controller="TenantApps" asp-action="Create" class="alert-link">Register an app</a> first.
+    </div>
+}
+else
+{
+    <div class="row">
+        <div class="col-lg-6">
+            <form asp-action="Create" method="post" id="groupForm">
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+                <div class="mb-3">
+                    <label asp-for="TenantAppId" class="form-label"></label>
+                    <select asp-for="TenantAppId" class="form-select" required>
+                        <option value="" data-name="">Select an app…</option>
+                        @foreach (var app in Model.Apps)
+                        {
+                            <option value="@app.Id" data-name="@app.Name" selected="@(Model.TenantAppId == app.Id)">@app.Name@(app.IsEnabled ? "" : " (disabled)")</option>
+                        }
+                    </select>
+                    <span asp-validation-for="TenantAppId" class="text-danger small"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="GroupName" class="form-label"></label>
+                    <input asp-for="GroupName" class="form-control" autocomplete="off" required />
+                    <span asp-validation-for="GroupName" class="text-danger small"></span>
+                    <div class="form-text">
+                        Saved as: <code id="groupNamePreview">Select an app to see the final name</code>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label asp-for="PowerLevel" class="form-label"></label>
+                    <input asp-for="PowerLevel" type="number" class="form-control" min="0" max="100" step="1" required />
+                    <span asp-validation-for="PowerLevel" class="text-danger small"></span>
+                    <div class="form-text">
+                        Whole number from 0 to 100. <strong>0 = highest power</strong>; higher numbers = less power.
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-lg me-1"></i> Create Group
+                    </button>
+                    <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script src="~/js/admin-groups.js"></script>
+}

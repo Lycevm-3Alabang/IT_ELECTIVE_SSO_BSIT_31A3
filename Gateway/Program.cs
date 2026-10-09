@@ -3,11 +3,34 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Models;
 using Gateway.Services;
+using Microsoft.AspNetCore.Cors.Infrastructure;
+using Microsoft.Extensions.Options;
+using System.Text;
+
+const string ExternalClientAppsCors = "ExternalClientApps";
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddScoped<IAuditService, AuditService>();
+
+builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("JwtSettings"));
+builder.Services.Configure<LoginRateLimitSettings>(builder.Configuration.GetSection("LoginRateLimit"));
+builder.Services.AddSingleton(TimeProvider.System);
+
+// The registered apps live in the database (Admin > Apps). The login gateway and the CORS policy
+// read the same list, so enabling, disabling or editing an app takes effect immediately.
+builder.Services.AddSingleton<IExternalAppRegistry, DbExternalAppRegistry>();
+builder.Services.AddSingleton<ILoginRateLimiter, LoginRateLimiter>();
+builder.Services.AddSingleton<IJwtTokenService, JwtTokenService>();
+
+// Only origins of enabled, registered apps get CORS headers. No credentials are allowed.
+builder.Services.AddCors();
+builder.Services.AddOptions<CorsOptions>().Configure<IExternalAppRegistry>((options, registry) =>
+    options.AddPolicy(ExternalClientAppsCors, policy => policy
+        .SetIsOriginAllowed(registry.IsOriginApproved)
+        .WithMethods("GET", "POST")
+        .WithHeaders("Authorization", "Content-Type")));
 
 builder.Services.AddDbContext<SsoDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -23,7 +46,21 @@ builder.Services
 // Use the active-aware SignInManager so inactive accounts cannot log in.
 builder.Services.AddScoped<SignInManager<ApplicationUser>, ActiveUserSignInManager>();
 
+// Admins sign in to the gateway itself through /Account/Login (cookie).
+builder.Services.ConfigureApplicationCookie(options =>
+{
+    options.LoginPath = "/Account/Login";
+    options.AccessDeniedPath = "/Account/AccessDenied";
+});
+
 var app = builder.Build();
+
+// Fail at startup, not on the first login, if the signing key is too short for HS256.
+var jwtKey = app.Services.GetRequiredService<IOptions<JwtSettings>>().Value.SecretKey;
+if (Encoding.UTF8.GetByteCount(jwtKey ?? string.Empty) < 32)
+{
+    throw new InvalidOperationException("JwtSettings:SecretKey must be at least 32 bytes long.");
+}
 
 using (var scope = app.Services.CreateScope())
 {
@@ -32,6 +69,7 @@ using (var scope = app.Services.CreateScope())
 }
 
 await SeedData.SeedAdminAsync(app.Services);
+await SeedData.SeedSampleAppAsync(app.Services);
 
 if (!app.Environment.IsDevelopment())
 {
@@ -41,16 +79,22 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseRouting();
+app.UseCors(ExternalClientAppsCors);
 
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapStaticAssets();
 
+// /Admin/Dashboard, /Admin/Groups, /Admin/TenantApps ...
+app.MapControllerRoute(
+    name: "areas",
+    pattern: "{area:exists}/{controller=Dashboard}/{action=Index}/{id?}")
+    .WithStaticAssets();
+
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}")
     .WithStaticAssets();
-
 
 app.Run();

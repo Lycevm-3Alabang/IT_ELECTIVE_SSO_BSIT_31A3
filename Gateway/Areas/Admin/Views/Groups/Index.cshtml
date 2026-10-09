@@ -1,0 +1,83 @@
+@model IReadOnlyList<GroupListItemViewModel>
+@{
+    ViewData["Title"] = "Groups";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-2">
+    <h2 class="mb-0">Groups</h2>
+    <a asp-action="Create" class="btn btn-primary">
+        <i class="bi bi-plus-lg me-1"></i> Create Group
+    </a>
+</div>
+<p class="text-muted">
+    Every group belongs to one app. External apps read a group's <strong>power level</strong> to decide what its
+    members may do: <strong>0 is the highest power</strong>, and higher numbers mean less power.
+</p>
+
+@if (TempData["StatusMessage"] is string statusMessage)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @statusMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<div class="table-responsive">
+    <table class="table table-hover align-middle">
+        <thead>
+            <tr>
+                <th>Group</th>
+                <th>App</th>
+                <th>Power level</th>
+                <th>Members</th>
+                <th>Created</th>
+                <th class="text-end">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (Model.Count == 0)
+            {
+                <tr>
+                    <td colspan="6" class="text-center text-muted py-4">No groups yet.</td>
+                </tr>
+            }
+            else
+            {
+                foreach (var group in Model)
+                {
+                    <tr>
+                        <td><strong>@group.Name</strong></td>
+                        <td>@group.AppName</td>
+                        <td>
+                            <span class="badge @(group.PowerLevel == 0 ? "bg-danger" : "bg-secondary")"
+                                  title="@(group.PowerLevel == 0 ? "Highest power" : "Lower numbers have more power")">
+                                @group.PowerLevel
+                            </span>
+                        </td>
+                        <td>@group.MemberCount</td>
+                        <td>@group.CreatedAt.ToLocalTime().ToString("MMM d, yyyy")</td>
+                        <td class="text-end">
+                            <div class="d-flex justify-content-end gap-2">
+                                <a asp-action="Edit" asp-route-id="@group.Id" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-pencil"></i> Edit
+                                </a>
+                                <form asp-action="Delete" asp-route-id="@group.Id" method="post"
+                                      class="js-delete-group"
+                                      data-group-name="@group.Name"
+                                      data-member-count="@group.MemberCount">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                                        <i class="bi bi-trash"></i> Delete
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            }
+        </tbody>
+    </table>
+</div>
+
+@section Scripts {
+    <script src="~/js/admin-groups.js"></script>
+}
