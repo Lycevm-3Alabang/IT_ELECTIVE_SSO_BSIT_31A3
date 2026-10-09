@@ -1,4 +1,4 @@
-namespace Gateway.Areas.Admin.Models.Users
+﻿namespace Gateway.Areas.Admin.Models.Users
 {
 
     public class UserListItemViewModel
@@ -10,7 +10,5 @@ namespace Gateway.Areas.Admin.Models.Users
         public bool IsActive { get; set; }
 
         public DateTime CreatedAt { get; set; }
-
-    public DateTime? LastLoginAt { get; set; }
     }
 }
