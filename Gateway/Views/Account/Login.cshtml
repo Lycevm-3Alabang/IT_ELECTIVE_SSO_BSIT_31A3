@@ -1,0 +1,15 @@
+@{
+    ViewData["Title"] = "Login";
+}
+<div class="row justify-content-center"><div class="col-md-5">
+    <h1 class="mb-4">Sign in</h1>
+    <form asp-action="Login" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="returnUrl" value="@ViewData["ReturnUrl"]" />
+        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+        <div class="mb-3"><label for="email" class="form-label">Email</label><input id="email" name="email" type="email" class="form-control" autocomplete="username" required /></div>
+        <div class="mb-3"><label for="password" class="form-label">Password</label><input id="password" name="password" type="password" class="form-control" autocomplete="current-password" required /></div>
+        <div class="form-check mb-3"><input id="rememberMe" name="rememberMe" value="true" type="checkbox" class="form-check-input" /><label for="rememberMe" class="form-check-label">Remember me</label></div>
+        <button type="submit" class="btn btn-primary w-100">Login</button>
+    </form>
+</div></div>

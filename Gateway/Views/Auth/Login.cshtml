@@ -1,16 +1,15 @@
-﻿@{
+﻿@model LoginViewModel
+@{
     ViewData["Title"] = "IT ELECTIVE - SSO";
     ViewData["IsLoginPage"] = true;
 
-    var returnUrl = ViewData["ReturnUrl"] as string;
-
-    string? appName = null;
-
-    if (!string.IsNullOrWhiteSpace(returnUrl) &&
-        Uri.TryCreate(returnUrl, UriKind.Absolute, out var uri))
-    {
-        appName = uri.Host;
-    }
+    // Errors come from AuthController (invalid credentials, rate limit, validation).
+    var errors = ViewData.ModelState.Values
+        .SelectMany(v => v.Errors)
+        .Select(e => e.ErrorMessage)
+        .Where(m => !string.IsNullOrWhiteSpace(m))
+        .Distinct()
+        .ToList();
 }
 
 <nav class="login-navbar"
@@ -59,12 +58,12 @@
 
         </header>
 
-        @if (!string.IsNullOrWhiteSpace(appName))
+        @if (!string.IsNullOrWhiteSpace(Model.AppName))
         {
             <div class="app-name"
                  aria-label="Application requesting login">
 
-                Sign in to <strong>@appName</strong>
+                Sign in to <strong>@Model.AppName</strong>
 
             </div>
         }
@@ -73,19 +72,23 @@
              class="login-error"
              role="alert"
              aria-live="assertive"
-             hidden>
+             hidden="@(errors.Count == 0 ? "hidden" : null)">
 
-            Invalid email or password.
+            @foreach (var message in errors)
+            {
+                <div>@message</div>
+            }
 
         </div>
 
-        <form method="post"
-              action="/Auth/Login"
+        <form asp-controller="Auth"
+              asp-action="Login"
+              method="post"
+              novalidate
               aria-label="Login form">
 
-            <input type="hidden"
-                   name="returnUrl"
-                   value="@returnUrl" />
+            <input asp-for="ReturnUrl"
+                   type="hidden" />
 
             <div class="form-group">
 
@@ -93,9 +96,9 @@
                     Email
                 </label>
 
-                <input type="email"
+                <input asp-for="Email"
+                       type="email"
                        id="email"
-                       name="email"
                        autocomplete="username"
                        aria-required="true"
                        aria-describedby="login-error"
@@ -109,9 +112,9 @@
                     Password
                 </label>
 
-                <input type="password"
+                <input asp-for="Password"
+                       type="password"
                        id="password"
-                       name="password"
                        autocomplete="current-password"
                        aria-required="true"
                        aria-describedby="login-error"
