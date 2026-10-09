@@ -1,20 +1,20 @@
 ﻿using Gateway.Models;
+using Gateway.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Gateway.Controllers
 {
     public class AppsController : Controller
     {
-        private static readonly List<ExternalApp> Apps = new()
+        private readonly IExternalAppRegistry _registry;
+
+        public AppsController(IExternalAppRegistry registry)
         {
-            new ExternalApp
-            {
-                Id = 1,
-                Name = "Sample App",
-                ReturnUrl = "https://example.com/callback",
-                IsEnabled = true
-            }
-        };
+            _registry = registry;
+        }
+
+        // The registry owns the list so the login gateway validates returnUrl against the same apps managed here.
+        private List<ExternalApp> Apps => _registry.Apps;
 
         // GET: /Apps
         public IActionResult Index()
